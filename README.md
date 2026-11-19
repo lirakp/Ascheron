@@ -10,6 +10,17 @@ npm run dev        # Entwicklungsserver auf http://localhost:5173
 npm run build      # erzeugt dist/ und dist/ascheron.html (eine einzige, eigenständige Datei)
 ```
 
+## Windows-App
+
+Bei jedem Push baut GitHub Actions die Windows-Version (Workflow `Windows-App`). Unter dem jeweiligen Lauf liegen im Bereich **Artifacts** zwei Dateien:
+
+- `Ascheron-Setup-<Version>.exe`: Installer mit Startmenü- und Desktop-Verknüpfung.
+- `Ascheron-Portable-<Version>.exe`: läuft ohne Installation.
+
+Ein Tag wie `v0.2.0` erzeugt zusätzlich ein Release mit beiden Dateien. Lokal startest du die App mit `npm run app`. In der App schaltet F11 (oder Alt+Enter) den Vollbildmodus um. Spielstände liegen in `%APPDATA%\Ascheron`.
+
+Die App ist nicht signiert. Windows SmartScreen zeigt deshalb beim ersten Start eine Warnung. Mit „Weitere Informationen“ → „Trotzdem ausführen“ startest du sie.
+
 ## Steuerung
 
 | Wo | Taste |

@@ -3,19 +3,63 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Ascheron – 2D Open-World-RPG nach der Welt-Bibel",
+  "description": "Ascheron – 2D-Open-World-RPG nach der Welt-Bibel",
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build && node scripts/inline.mjs",
     "typecheck": "tsc --noEmit",
-    "balance": "tsx scripts/balance.ts"
+    "balance": "tsx scripts/balance.ts",
+    "app": "npm run build && electron .",
+    "dist:win": "npm run build && electron-builder --win nsis portable --x64"
   },
   "dependencies": {
+    "@fontsource/pixelify-sans": "^5.2.5",
     "phaser": "3.90.0"
   },
   "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8",
     "tsx": "^4.23.15",
     "typescript": "^5",
     "vite": "^6"
+  },
+  "main": "electron/main.cjs",
+  "author": "lirakp",
+  "build": {
+    "appId": "de.lirakp.ascheron",
+    "productName": "Ascheron",
+    "copyright": "Ascheron",
+    "directories": {
+      "output": "release",
+      "buildResources": "build"
+    },
+    "files": [
+      "electron/**",
+      "dist/ascheron.html",
+      "build/icon.png",
+      "package.json"
+    ],
+    "win": {
+      "icon": "build/icon.png",
+      "signAndEditExecutable": false,
+      "artifactName": "${productName}-${version}-${arch}.${ext}"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "Ascheron",
+      "installerLanguages": [
+        "de_DE"
+      ],
+      "language": "1031",
+      "artifactName": "${productName}-Setup-${version}.${ext}",
+      "deleteAppDataOnUninstall": false
+    },
+    "portable": {
+      "artifactName": "${productName}-Portable-${version}.${ext}"
+    }
   }
 }

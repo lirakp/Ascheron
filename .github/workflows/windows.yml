@@ -1,0 +1,45 @@
+name: Windows-App
+
+# Baut bei jedem Push den Windows-Installer und die portable .exe.
+# Ein Tag wie v0.2.0 erzeugt zusätzlich ein Release zum Herunterladen.
+on:
+  push:
+    branches: ['**']
+    tags: ['v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Installer und portable App bauen
+        run: npm run dist:win
+        env:
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+
+      - name: Dateien als Artefakt hochladen
+        uses: actions/upload-artifact@v4
+        with:
+          name: Ascheron-Windows
+          path: |
+            release/*.exe
+          if-no-files-found: error
+
+      - name: Release anlegen (nur bei Tags)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: release/*.exe
+          generate_release_notes: true
