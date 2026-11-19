@@ -16,6 +16,7 @@ import { hideHud } from '../ui/hud';
 import { setEsc } from '../core/input';
 import { SFX } from '../core/sfx';
 import { rollDrops, grantLoot, onKill } from '../core/game';
+import { physDamage, enemyDamage, spellDamage, healAmount, blessAmount, roll, turnInterval } from '../core/combat';
 
 interface Fighter {
   id: number;
@@ -280,7 +281,7 @@ export class BattleScene extends Phaser.Scene {
   pickTarget(f: Fighter): void { if (this.selecting && this.selList.includes(f)) this.selecting(f); }
 
   // ------------------------------------------------------------ Ablauf
-  interval(f: Fighter): number { return (100 / Math.max(1, f.spd)) * (f.st.langsam || f.st.kreide ? 1.5 : 1); }
+  interval(f: Fighter): number { return turnInterval(f.spd, !!(f.st.langsam || f.st.kreide)); }
 
   async loop(): Promise<void> {
     while (!this.over) {
@@ -502,16 +503,13 @@ export class BattleScene extends Phaser.Scene {
     const darkBonus = els.includes('schatten') && (m.app.race === 'dunkelelf' ? 1.3 : m.app.race === 'halbdunkelelf' ? 1.2 : 1) || 1;
     for (const t of targets) {
       if (sp.kind === 'dmg') {
-        let base = f.mag * sp.power * 1.25 * darkBonus + 4;
-        base *= 26 / (26 + t.def * 0.6);
-        const weak = t.mdef && els.some((e) => t.mdef!.weak.includes(e));
-        const res = t.mdef && els.some((e) => t.mdef!.resist.includes(e));
-        if (weak) base *= 1.6; if (res) base *= 0.5;
-        if (t.mdef?.undead && els.includes('licht')) base *= 1.3;
+        const weak = !!t.mdef && els.some((e) => t.mdef!.weak.includes(e));
+        const res = !!t.mdef && els.some((e) => t.mdef!.resist.includes(e));
+        const base = spellDamage(f.mag, sp.power, t.def, { weak, resist: res, undeadLicht: !!t.mdef?.undead && els.includes('licht'), bonus: darkBonus });
         this.damage(t, base, { licht: els.includes('licht') }, weak ? 'Schwachstelle!' : res ? 'widersteht' : undefined);
         if (sp.status && t.alive && Math.random() < 0.45) this.applyStatus(t, sp.status, 3);
       } else if (sp.kind === 'heal') {
-        const amt = Math.round(f.mag * sp.power * 1.8 + 12);
+        const amt = healAmount(f.mag, sp.power);
         t.hp = Math.min(t.maxHp, t.hp + amt); this.float(t, `+${amt}`, '#9fe08a');
         if (sp.name === 'Läuterung') for (const k of BAD) delete t.st[k];
       } else if (sp.kind === 'buff') {
@@ -570,9 +568,7 @@ export class BattleScene extends Phaser.Scene {
     this.pose(f, 'strike');
     this.slash(t, precise);
     this.payTribut(f);
-    let base = f.atk * mult * (precise ? 1.5 : 1);
-    const def = t.def * (1 - (opts.ignoreDef ?? 0));
-    base *= 22 / (22 + def);
+    const base = physDamage(f.atk, mult, t.def, precise, opts.ignoreDef ?? 0);
     if (precise) { this.float(t, 'Präzise!', '#ffe08a'); f.ap = Math.min(5, f.ap + 1); SFX.crit(); this.cameras.main.shake(120, 0.006); } else SFX.hit();
     this.damage(t, base, { precise: precise || opts.tech === 'gezielter_schuss', tech: opts.tech });
     await this.wait(160);
@@ -583,8 +579,7 @@ export class BattleScene extends Phaser.Scene {
   damage(t: Fighter, raw: number, info: HitInfo, note?: string): void {
     if (!t.alive) return;
     if (t.st.verkrustet) { this.float(t, 'Verkrustet – kein Schaden', '#d8d2c4'); return; }
-    let d = Math.max(1, Math.round(raw * (0.9 + Math.random() * 0.2)));
-    if (t.st.wehrlos) d = Math.round(d * 1.5);
+    const d = roll(raw, Math.random, !!t.st.wehrlos);
     t.hp -= d;
     this.float(t, `${d}`, info.precise ? '#ffe08a' : '#ffffff', info.precise);
     if (note) this.float(t, note, note === 'widersteht' ? '#a8a8a8' : '#ffb04a');
@@ -643,7 +638,7 @@ export class BattleScene extends Phaser.Scene {
       case 'schattenstich': { const e = await this.chooseEnemy(); if (!e) return false; spend(); this.say('Schattenstich!'); await this.doAttack(f, e, 1.6); this.applyStatus(f, 'schleier', 2); return true; }
       case 'naturruf': { spend(); this.say('Naturruf!'); SFX.magic(); for (const e of this.enemiesAlive()) { const w = e.mdef?.weak.includes('dendro') ? 1.5 : 1; this.damage(e, f.mag * 1.3 * w + 5, {}); if (e.alive) this.applyStatus(e, 'langsam', 3); } await this.wait(700); return true; }
       case 'schildwall': { spend(); this.say(`${m.name}: Schildwall! Alle Angriffe auf mich!`); this.applyStatus(f, 'schildwall', 2); return true; }
-      case 'segen': { spend(); this.say('Segen!'); SFX.heal(); for (const a of this.partyAlive()) { const amt = Math.round(f.mag * 1.6 + 10); a.hp = Math.min(a.maxHp, a.hp + amt); this.float(a, `+${amt}`, '#9fe08a'); for (const k of BAD) delete a.st[k]; } this.renderParty(); await this.wait(600); return true; }
+      case 'segen': { spend(); this.say('Segen!'); SFX.heal(); for (const a of this.partyAlive()) { const amt = blessAmount(f.mag); a.hp = Math.min(a.maxHp, a.hp + amt); this.float(a, `+${amt}`, '#9fe08a'); for (const k of BAD) delete a.st[k]; } this.renderParty(); await this.wait(600); return true; }
       case 'manaschub': { spend(); const s = stats(m); const amt = Math.round(s.mp * 0.4); m.mp = Math.min(s.mp, m.mp + amt); this.float(f, `+${amt} MP`, '#7fb0ff'); SFX.magic(); this.renderParty(); await this.wait(500); return true; }
       case 'doppelwirken': {
         if (!isHalf(m)) return false;
@@ -715,15 +710,11 @@ export class BattleScene extends Phaser.Scene {
         if (res === 'parry') { this.pose(t, 'strike'); this.time.delayedCall(220, () => this.pose(t, 'ready')); this.float(t, 'Pariert!', '#ffe08a'); t.ap = Math.min(5, t.ap + 1); SFX.parry(); this.sparks(t, 0xffe08a); continue; }
         if (res === 'dodge') { this.float(t, 'Ausgewichen', '#a0d8ff'); SFX.dodge(); this.tweens.add({ targets: t.spr, y: t.hy - 30, yoyo: true, duration: 140 }); continue; }
         if (t.st.schleier && Math.random() < 0.6) { this.float(t, 'Verfehlt (Schleier)', '#c8a0ff'); delete t.st.schleier; continue; }
-        let raw = f.atk * atk.power * 1.15;
-        let d = t.def * (t.st.steinhaut ? 1.8 : 1) * (t.st.schildwall ? 2 : 1) * (t.st.dornenwall ? 1.3 : 1);
-        raw *= 22 / (22 + d);
-        if (t.defending) raw *= 0.5;
+        const raw = enemyDamage(f.atk, atk.power, t.def, { steinhaut: !!t.st.steinhaut, schildwall: !!t.st.schildwall, dornenwall: !!t.st.dornenwall, defending: t.defending });
         SFX.hurt(); this.cameras.main.shake(140, 0.008);
         this.damage(t, raw, {});
         if (t.st.dornenwall && f.alive) this.damage(f, raw * 0.3, {}, 'Dornen');
         if (atk.status && t.alive && Math.random() < (atk.statusChance ?? 0.3)) this.applyStatus(t, atk.status, atk.status === 'ertrinken' ? 2 : 3);
-        d = 0;
       }
       this.renderParty();
     }

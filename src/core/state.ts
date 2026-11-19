@@ -28,7 +28,7 @@ export function makeMember(id: string, name: string, app: Appearance, cls: Class
 
 export function newGame(player: Member): void {
   G = {
-    version: 1, party: [], silver: 60, inv: { heiltrank: 3, proviant: 6, kraeuterbund: 1 }, gear: [], rp: 0, advRank: 'D',
+    version: 1, party: [], silver: 85, inv: { heiltrank: 4, proviant: 6, kraeuterbund: 1 }, gear: [], rp: 0, advRank: 'D',
     day: 0, quests: {}, dungeons: baseDungeons(), formulas: [], flags: {}, pos: { x: 27 * 16, y: 38 * 16 }, blutmond: 0,
     rep: { gilde: 0, kirche: 0, konsortium: 0, muenze: 0 }, kills: {}, nextDungeonDay: 9, uid: 0, herbsTaken: [], log: [],
   };

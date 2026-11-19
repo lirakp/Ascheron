@@ -69,7 +69,7 @@ export const TECHS: Record<string, TechDef> = {
   naturruf: { name: 'Naturruf', ap: 3, desc: 'Ranken und Sturm treffen alle Feinde (Dendro) und verlangsamen sie.' },
   schattenstich: { name: 'Schattenstich', ap: 2, desc: '160 % Wucht aus dem Schatten, danach Schattenschleier.' },
   doppelwirken: { name: 'Doppelwirken', ap: 3, desc: 'Beide Manaflüsse zugleich: zwei Zauber in einem Zug.' },
-  schildwall: { name: 'Schildwall', ap: 2, desc: 'Zieht alle Angriffe auf sich und verdoppelt die Verteidigung für 2 Runden.' },
+  schildwall: { name: 'Schildwall', ap: 2, desc: 'Zieht alle Angriffe auf sich und erhöht die Verteidigung um 50 % für 2 Runden.' },
   durchstoss: { name: 'Durchstoß', ap: 2, desc: '170 % Wucht, ignoriert die Verteidigung vollständig.' },
   segen: { name: 'Segen', ap: 2, desc: 'Heilt den ganzen Trupp und entfernt schädliche Zustände.' },
   gezielter_schuss: { name: 'Gezielter Schuss', ap: 2, desc: '220 % Wucht. Trennt Hohlmännern sicher den Kopf ab.' },

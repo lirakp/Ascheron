@@ -7,12 +7,14 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc --noEmit && vite build && node scripts/inline.mjs",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "balance": "tsx scripts/balance.ts"
   },
   "dependencies": {
     "phaser": "3.90.0"
   },
   "devDependencies": {
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vite": "^6"
   }
