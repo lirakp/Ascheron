@@ -5,7 +5,7 @@ import { PB, shade, canvas } from './pixel';
 export const CW = 16, CH = 24;
 // Richtungen: 0 unten, 1 links, 2 rechts, 3 oben – je 3 Frames (Stand, Schritt A, Schritt B)
 
-function bodyMetrics(a: Appearance) {
+export function bodyMetrics(a: Appearance) {
   const short = RACES[a.race].short_stature;
   const hy = short ? 5 : 2;
   const by = hy + 8;
@@ -102,7 +102,7 @@ function drawHairSide(p: PB, a: Appearance, hy: number, by: number): void {
   if (a.hairStyle === 'kurz') p.set(9, hy + 5, hd);
 }
 
-export function drawCharFrame(a: Appearance, dir: number, frame: number): PB {
+export function drawCharFrame(a: Appearance, dir: number, frame: number, raw = false): PB {
   const p = new PB(CW, CH);
   const m = bodyMetrics(a);
   const { hy, by, bh, half, ly } = m;
@@ -159,9 +159,11 @@ export function drawCharFrame(a: Appearance, dir: number, frame: number): PB {
     for (let y = by; y < by + bh - 1; y++) { p.set(lx, y + Math.max(0, swing), clothD); p.set(rx, y + Math.max(0, -swing), clothD); }
     p.set(lx, by + bh - 1 + Math.max(0, swing), skin); p.set(rx, by + bh - 1 + Math.max(0, -swing), skin);
   } else {
-    const sw = frame === 1 ? -1 : frame === 2 ? 1 : 0;
-    for (let y = by + 1; y < by + bh; y++) p.set(7 + (y > by + 2 ? sw : 0), y, clothD);
-    p.set(7 + sw, by + bh, skin);
+    if (!raw) {
+      const sw = frame === 1 ? -1 : frame === 2 ? 1 : 0;
+      for (let y = by + 1; y < by + bh; y++) p.set(7 + (y > by + 2 ? sw : 0), y, clothD);
+      p.set(7 + sw, by + bh, skin);
+    }
   }
 
   // Kopf
@@ -207,6 +209,7 @@ export function drawCharFrame(a: Appearance, dir: number, frame: number): PB {
     if (race.ears === 'tier') drawAnimalEars(p, a, hy, dir);
   }
   void bob;
+  if (raw) return p;
   const out = dir === 2 ? p.mirrorX() : p;
   out.bevel(0.14, 0.2);
   out.outline('#0a0b12');
@@ -223,5 +226,71 @@ export function charSheet(a: Appearance): HTMLCanvasElement {
 export function charPortrait(a: Appearance, scale: number, dir = 0): HTMLCanvasElement {
   const [c, ctx] = canvas(CW * scale, CH * scale);
   drawCharFrame(a, dir, 0).draw(ctx, 0, 0, scale);
+  return c;
+}
+
+// ---------------------------------------------------------------- Kampfposen
+export type Pose = 'ready' | 'windup' | 'strike' | 'cast' | 'hurt';
+export const POSES: Pose[] = ['ready', 'windup', 'strike', 'cast', 'hurt'];
+export type WeaponKind = 'sword' | 'spear' | 'mace' | 'staff' | 'crossbow';
+export const BW = 36, BH = 28;
+
+function drawWeapon(p: PB, kind: WeaponKind, hx: number, hy: number, dx: number, dy: number): void {
+  const n = Math.hypot(dx, dy); dx /= n; dy /= n;
+  const at = (t: number): [number, number] => [Math.round(hx + dx * t), Math.round(hy + dy * t)];
+  const seg = (t0: number, t1: number, c: string) => { for (let t = t0; t <= t1; t += 0.5) { const [x, y] = at(t); p.set(x, y, c); } };
+  const px = -dy, py = dx; // senkrecht zur Waffe
+  if (kind === 'sword') {
+    seg(-2, 0, '#6a4a30');
+    seg(1, 9, '#c8ceda'); seg(9, 10, '#eef2f8');
+    for (const s of [-1.5, -1, 1, 1.5]) p.set(Math.round(hx + dx + px * s), Math.round(hy + dy + py * s), '#e0b04a');
+  } else if (kind === 'spear') {
+    seg(-5, 11, '#8a6238'); seg(11, 14, '#c8ceda');
+    const [tx, ty] = at(12); p.set(Math.round(tx + px), Math.round(ty + py), '#c8ceda'); p.set(Math.round(tx - px), Math.round(ty - py), '#c8ceda');
+    const [rx, ry] = at(10); p.set(rx, ry, '#b83a32');
+  } else if (kind === 'mace') {
+    seg(-1, 7, '#7a5232');
+    const [mx, my] = at(8); p.rect(mx - 1, my - 1, 3, 3, '#a8aebb'); p.set(mx - 2, my, '#a8aebb'); p.set(mx + 2, my, '#a8aebb'); p.set(mx, my - 2, '#a8aebb'); p.set(mx, my + 2, '#a8aebb');
+  } else if (kind === 'staff') {
+    seg(-4, 10, '#8a6238');
+    const [ox, oy] = at(11); p.rect(ox - 1, oy - 1, 2, 2, '#6ad0ff'); p.set(ox, oy - 1, '#d8f4ff');
+  } else {
+    seg(-1, 5, '#8a6238');
+    for (let s = -3; s <= 3; s++) { const [bx, by] = at(5 - Math.abs(s) * 0.5); p.set(Math.round(bx + px * s), Math.round(by + py * s), '#d8d0bc'); }
+    seg(5, 6, '#c8ceda');
+  }
+}
+
+/** Kampf-Frame (Blick nach rechts) mit Arm und Waffe in der jeweiligen Pose. */
+export function battleFrame(a: Appearance, pose: Pose, weapon: WeaponKind): PB {
+  const body = drawCharFrame(a, 1, pose === 'strike' ? 1 : pose === 'hurt' ? 2 : 0, true);
+  const { by, bh } = bodyMetrics(a);
+  const ox = 12, oy = 4;
+  const p = new PB(BW, BH);
+  const lean = pose === 'hurt' ? 1 : pose === 'strike' ? -1 : 0;
+  for (let y = 0; y < CH; y++) for (let x = 0; x < CW; x++) { const c = body.get(x, y); if (c) p.set(ox + x + (y < by + 2 ? lean : 0), oy + y, c); }
+  const sleeve = shade(a.cloth, -0.28), skin = a.skin;
+  const sx = ox + 8 + lean, sy = oy + by + 1;
+  const pose_: Record<Pose, [number, number, number, number]> = {
+    ready: [ox + 6, oy + by + bh - 1, -0.45, -1],
+    windup: [ox + 11, oy + by - 3, 0.7, -1],
+    strike: [ox + 2, oy + by + 2, -1, 0.12],
+    cast: [ox + 4, oy + by - 3, -0.25, -1],
+    hurt: [ox + 11, oy + by + bh - 1, 0.9, 0.7],
+  };
+  const [hx, hy, dx, dy] = pose_[pose];
+  drawWeapon(p, weapon, hx, hy, dx, dy);
+  p.line(sx, sy, hx, hy, sleeve);
+  p.set(hx, hy, skin);
+  if (pose === 'cast') { p.set(hx - 1, hy - 1, '#fff2b0'); p.set(hx - 2, hy, '#f0c35a'); p.set(hx, hy - 2, '#f0c35a'); }
+  const out = p.mirrorX();
+  out.bevel(0.14, 0.2);
+  out.outline('#0a0b12');
+  return out;
+}
+
+export function battleSheet(a: Appearance, weapon: WeaponKind): HTMLCanvasElement {
+  const [c, ctx] = canvas(BW * POSES.length, BH);
+  POSES.forEach((pose, i) => battleFrame(a, pose, weapon).draw(ctx, i * BW, 0));
   return c;
 }

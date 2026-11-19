@@ -338,6 +338,7 @@ export class DungeonScene extends Phaser.Scene {
         b.setVelocity(m.dir.x * speed * 0.4, m.dir.y * speed * 0.4);
       }
       if (b.velocity.x) m.spr.setFlipX(b.velocity.x > 0);
+      m.spr.setAngle(b.velocity.lengthSq() > 4 ? Math.sin(this.time.now / 70 + m.home.x) * 7 : 0);
       if (d < 13) { this.encounter(m); break; }
     }
   }

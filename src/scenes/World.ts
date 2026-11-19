@@ -290,6 +290,7 @@ export class WorldScene extends Phaser.Scene {
         b.setVelocity(r.dir.x * fast * 0.4, r.dir.y * fast * 0.4);
       }
       if (b.velocity.x !== 0) r.spr.setFlipX(b.velocity.x > 0);
+      r.spr.setAngle(b.velocity.lengthSq() > 4 ? Math.sin(this.time.now / 70 + r.home.x) * 7 : 0);
       if (d < 13) { this.startEncounter(r); break; }
     }
   }

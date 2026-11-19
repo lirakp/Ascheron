@@ -6,7 +6,9 @@ import { RACES, CLASSES } from '../data/races';
 import { TECHS } from '../data/world';
 import { ITEMS } from '../data/items';
 import { resolveSpell, spellCost, EL_NAME, EL_COLOR, SpellDef, keyOf } from '../data/magic';
-import { ensureChar } from '../gfx/tex';
+import { addSheet } from '../gfx/tex';
+import { battleSheet, BW, BH, POSES, Pose, WeaponKind } from '../gfx/chars';
+import { gearIcon } from '../gfx/icons';
 import { battleBg } from '../gfx/backgrounds';
 import { ico, slot, ITEM_ICON } from '../gfx/icons';
 import { h, btn, UI, clear, bar, toast } from '../ui/dom';
@@ -88,9 +90,11 @@ export class BattleScene extends Phaser.Scene {
     const pslots = [[255, 410], [170, 358], [170, 462]];
     G.party.forEach((m, i) => {
       const key = 'b_' + m.id;
-      ensureChar(this, key, m.app, true);
+      const wg = gearOf(m.equip.weapon);
+      const wk = (wg ? gearIcon(wg.def, 'weapon', wg.name) : 'sword') as WeaponKind;
+      addSheet(this, key, battleSheet(m.app, wk), BW, BH);
       const [x, y] = pslots[i];
-      const spr = this.add.sprite(x, y, key, 6).setOrigin(0.5, 1).setScale(4).setDepth(y / 10);
+      const spr = this.add.sprite(x, y, key, 0).setOrigin(0.5, 1).setScale(4).setDepth(y / 10);
       this.tweens.add({ targets: spr, scaleY: 4.12, yoyo: true, repeat: -1, duration: 1100 + i * 170, ease: 'Sine.easeInOut' });
       const s = stats(m);
       const f = this.addFighter({ side: 'p', name: m.name, member: m, hp: m.hp, maxHp: s.hp, atk: s.atk, def: s.def, mag: s.mag, spd: s.spd, spr, hx: x, hy: y, scale: 4 });
@@ -128,7 +132,7 @@ export class BattleScene extends Phaser.Scene {
     }
     for (const f of this.F) {
       if (f.mdef?.id !== 'gloeckner' && !f.parent) {
-        const sw = Math.max(40, f.spr.displayWidth * 0.75);
+        const sw = f.side === 'p' ? 66 : Math.max(40, f.spr.displayWidth * 0.75);
         const sh = this.add.ellipse(f.spr.x, f.hy, sw, sw * 0.22, 0x05060b, 0.45).setDepth(f.spr.depth - 0.5);
         this.shadows.push({ f, sh });
       }
@@ -482,6 +486,7 @@ export class BattleScene extends Phaser.Scene {
     this.say(`${m.name}: ${sp.name}`, sp.bruch ? '#ff7a6a' : '#cfe0ff');
     // Effekt-Animation
     const col = Phaser.Display.Color.HexStringToColor(EL_COLOR[els[0]]).color;
+    this.pose(f, 'cast');
     await this.tweenTo(f.spr, { x: f.hx + 20 }, 150);
     for (const t of targets) {
       const p = this.add.particles(t.spr.x, this.cy(t), 'glow', { speed: { min: 40, max: 160 }, scale: { start: 0.8, end: 0 }, lifespan: 600, quantity: 18, tint: els.map((e) => Phaser.Display.Color.HexStringToColor(EL_COLOR[e]).color), emitting: false }).setDepth(50);
@@ -492,6 +497,7 @@ export class BattleScene extends Phaser.Scene {
     const rgb = Phaser.Display.Color.IntegerToRGB(col);
     this.cameras.main.flash(120, rgb.r, rgb.g, rgb.b);
     this.tweenTo(f.spr, { x: f.hx }, 200);
+    this.time.delayedCall(260, () => this.pose(f, 'ready'));
     await this.wait(250);
     const darkBonus = els.includes('schatten') && (m.app.race === 'dunkelelf' ? 1.3 : m.app.race === 'halbdunkelelf' ? 1.2 : 1) || 1;
     for (const t of targets) {
@@ -555,14 +561,22 @@ export class BattleScene extends Phaser.Scene {
 
   async doAttack(f: Fighter, t: Fighter, mult = 1, opts: { ignoreDef?: number; tech?: string; noTiming?: boolean } = {}): Promise<void> {
     this.say(`${f.name} greift an`);
-    await this.tweenTo(f.spr, { x: t.spr.x - (f.side === 'p' ? 90 : -90), y: t.spr.y }, 260);
+    this.pose(f, 'windup');
+    await this.wait(130);
+    this.pose(f, 'ready');
+    await this.tweenTo(f.spr, { x: t.spr.x - (f.side === 'p' ? 110 : -110), y: t.spr.y }, 240);
+    this.pose(f, 'windup');
     const precise = opts.noTiming ? false : await this.attackTiming(t);
+    this.pose(f, 'strike');
+    this.slash(t, precise);
     this.payTribut(f);
     let base = f.atk * mult * (precise ? 1.5 : 1);
     const def = t.def * (1 - (opts.ignoreDef ?? 0));
     base *= 22 / (22 + def);
     if (precise) { this.float(t, 'Präzise!', '#ffe08a'); f.ap = Math.min(5, f.ap + 1); SFX.crit(); this.cameras.main.shake(120, 0.006); } else SFX.hit();
     this.damage(t, base, { precise: precise || opts.tech === 'gezielter_schuss', tech: opts.tech });
+    await this.wait(160);
+    this.pose(f, 'ready');
     await this.tweenTo(f.spr, { x: f.hx, y: f.hy }, 260);
   }
 
@@ -574,8 +588,11 @@ export class BattleScene extends Phaser.Scene {
     t.hp -= d;
     this.float(t, `${d}`, info.precise ? '#ffe08a' : '#ffffff', info.precise);
     if (note) this.float(t, note, note === 'widersteht' ? '#a8a8a8' : '#ffb04a');
-    this.tweens.add({ targets: t.spr, x: t.spr.x + (t.side === 'e' ? 8 : -8), yoyo: true, duration: 60, repeat: 1 });
-    t.spr.setTint(0xff6a6a); this.time.delayedCall(140, () => t.spr.clearTint());
+    this.tweens.add({ targets: t.spr, x: t.spr.x + (t.side === 'e' ? 10 : -10), yoyo: true, duration: 70, repeat: 1 });
+    t.spr.setTintFill(0xffffff);
+    this.time.delayedCall(70, () => { t.spr.clearTint(); t.spr.setTint(0xff7a6a); });
+    this.time.delayedCall(190, () => t.spr.clearTint());
+    if (t.side === 'p') { this.pose(t, 'hurt'); this.time.delayedCall(320, () => { if (t.alive) this.pose(t, 'ready'); }); }
     if (t.hp <= 0) this.kill(t, info);
     this.renderParty();
   }
@@ -598,7 +615,11 @@ export class BattleScene extends Phaser.Scene {
       return;
     }
     this.tweens.killTweensOf(t.spr);
-    this.tweens.add({ targets: t.spr, alpha: 0, scale: t.spr.scale * 0.8, duration: 500 });
+    // Zerfall in Pixel
+    const bits = this.add.particles(t.spr.x, this.cy(t), 'px', { speed: { min: 30, max: 140 }, angle: { min: 200, max: 340 }, gravityY: 260, lifespan: 700, scale: { start: 1.2, end: 0.4 }, tint: [0xffffff, 0xd8d0c0, 0x8a8e9a], emitting: false }).setDepth(55);
+    bits.explode(28); this.time.delayedCall(900, () => bits.destroy());
+    t.spr.setTintFill(0xffffff);
+    this.tweens.add({ targets: t.spr, alpha: 0, scaleY: t.spr.scaleY * 0.2, scaleX: t.spr.scaleX * 1.2, duration: 380, ease: 'Quad.easeIn' });
     t.barG?.clear(); t.label?.setVisible(false);
     if (t.parent) {
       const p = t.parent;
@@ -676,16 +697,22 @@ export class BattleScene extends Phaser.Scene {
     const main = targets[0];
     const fx = atk.target === 'all' ? 230 : main.spr.x, fy = atk.target === 'all' ? 360 : this.cy(main);
     // Anlauf
-    await this.tweenTo(f.spr, { x: Math.max(fx + 150, f.spr.x - 140) }, 240);
+    const sx = f.spr.scaleX, sy = f.spr.scaleY;
+    this.tweens.killTweensOf(f.spr);
+    f.spr.setScale(sx, sy);
+    await this.tweenTo(f.spr, { scaleX: sx * 1.14, scaleY: sy * 0.88, x: f.spr.x + 14 }, 200);
+    await this.tweenTo(f.spr, { x: Math.max(fx + 160, f.spr.x - 150), scaleX: sx * 0.92, scaleY: sy * 1.08 }, 200);
+    f.spr.setScale(sx, sy);
     let allParried = atk.hits > 0;
     for (let i = 0; i < atk.hits; i++) {
       if (!targets.some((t) => t.alive)) break;
       const lead = i === 0 ? atk.windup : atk.gap;
       const res = await this.defendQte(fx, fy, lead, atk.kind, targets);
+      this.tweens.add({ targets: f.spr, x: f.spr.x - 26, yoyo: true, duration: 90 });
       if (res !== 'parry') allParried = false;
       for (const t of targets) {
         if (!t.alive) continue;
-        if (res === 'parry') { this.float(t, 'Pariert!', '#ffe08a'); t.ap = Math.min(5, t.ap + 1); SFX.parry(); this.sparks(t, 0xffe08a); continue; }
+        if (res === 'parry') { this.pose(t, 'strike'); this.time.delayedCall(220, () => this.pose(t, 'ready')); this.float(t, 'Pariert!', '#ffe08a'); t.ap = Math.min(5, t.ap + 1); SFX.parry(); this.sparks(t, 0xffe08a); continue; }
         if (res === 'dodge') { this.float(t, 'Ausgewichen', '#a0d8ff'); SFX.dodge(); this.tweens.add({ targets: t.spr, y: t.hy - 30, yoyo: true, duration: 140 }); continue; }
         if (t.st.schleier && Math.random() < 0.6) { this.float(t, 'Verfehlt (Schleier)', '#c8a0ff'); delete t.st.schleier; continue; }
         let raw = f.atk * atk.power * 1.15;
@@ -709,6 +736,23 @@ export class BattleScene extends Phaser.Scene {
       await this.tweenTo(main.spr, { x: main.hx }, 200);
     }
     await this.tweenTo(f.spr, { x: f.hx, y: f.hy }, 300);
+    if (f.alive && f.mdef?.id !== 'gloeckner') this.tweens.add({ targets: f.spr, scaleY: f.spr.scaleY * 1.04, yoyo: true, repeat: -1, duration: 900, ease: 'Sine.easeInOut' });
+  }
+
+  /** Setzt die Kampfpose einer Figur aus dem Trupp. */
+  pose(f: Fighter, p: Pose): void {
+    if (f.side !== 'p' || !(f.spr instanceof Phaser.GameObjects.Sprite)) return;
+    f.spr.setFrame(POSES.indexOf(p));
+  }
+
+  /** Hiebspur über dem Ziel. */
+  slash(t: Fighter, strong: boolean): void {
+    const g = this.add.graphics().setDepth(56);
+    const x = t.spr.x, y = this.cy(t);
+    g.lineStyle(strong ? 7 : 5, strong ? 0xffe08a : 0xffffff, 1);
+    g.beginPath(); g.arc(x - 20, y, 46, -1.1, 0.9); g.strokePath();
+    g.lineStyle(2, 0x0a0b12, 0.6); g.beginPath(); g.arc(x - 20, y, 52, -1.0, 0.8); g.strokePath();
+    this.tweens.add({ targets: g, alpha: 0, duration: 220, onComplete: () => g.destroy() });
   }
 
   sparks(t: Fighter, tint: number): void {
