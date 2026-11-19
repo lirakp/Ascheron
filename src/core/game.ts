@@ -64,12 +64,14 @@ export function setFreeSpots(s: [number, number][]): void { freeSpotsRef = s; }
 
 export function spawnRandomDungeon(): DungeonState | null {
   const r = Math.random;
-  const theme = r() < 0.15 ? 'thorn' as const : (['stone', 'chalk', 'sewer', 'stone'] as const)[Math.floor(r() * 4)];
+  const roll = r();
+  const theme = roll < 0.1 ? 'memory' as const : roll < 0.25 ? 'thorn' as const : (['stone', 'chalk', 'sewer', 'stone'] as const)[Math.floor(r() * 4)];
   const pools: Record<string, string[]> = {
     stone: ['aschhund', 'hohlmann', 'hohlmann'],
     chalk: ['kreidekriecher', 'kreidekriecher', 'hohlmann'],
     sewer: ['kanalwuerger', 'hohlmann'],
     thorn: ['rankenweber', 'hohlmann'],
+    memory: ['nachhall', 'erinnerungsschatten'],
   };
   const pool = pools[theme];
   const rank: Rank = G.advRank === 'D' ? (r() < 0.75 ? 'D' : 'C') : (r() < 0.5 ? 'C' : 'D');
@@ -80,7 +82,7 @@ export function spawnRandomDungeon(): DungeonState | null {
   const id = 'z' + Math.floor(G.day) + '_' + Math.floor(r() * 1000);
   const name = `${PREFIX[Math.floor(r() * PREFIX.length)]} ${NOUNS[theme][Math.floor(r() * NOUNS[theme].length)]} im Moor`;
   const d: DungeonState = {
-    id, name, theme, rank: thorn ? 'C' : rank, shownRank: thorn ? 'C' : rank, type: thorn ? 'Dorn' : 'Physisch', enemies: pool, boss: pool[0] + '_elite',
+    id, name, theme, rank: theme === 'memory' ? 'A' : thorn ? 'C' : rank, shownRank: thorn ? 'C' : rank, type: theme === 'memory' ? 'Erinnerung' : thorn ? 'Dorn' : 'Physisch', shownType: 'Physisch', story: Math.floor(r() * 3), enemies: pool, boss: theme === 'memory' ? '' : pool[0] + '_elite',
     rooms: rank === 'D' ? 6 : 8, frist: 18 + Math.floor(r() * 14), solved: false, broken: false, x, y, seed: Math.floor(r() * 99999), generated: true,
   };
   G.dungeons[id] = d;
@@ -133,7 +135,8 @@ export function onDungeonSolved(id: string): void {
     if (q.kind === 'dungeon' && q.target === id && (st.status === 'angenommen' || st.status === 'offen')) { st.status = 'erfuellt'; st.progress = 1; }
   }
   // Freie Dungeons zahlen eine Lösungsprämie über die Gilde
-  if (d.generated) G.flags['bounty_' + id] = d.rank === 'C' ? 90 : 40;
+  if (d.type === 'Erinnerung') G.flags['bounty_' + id] = 320;
+  else if (d.generated) G.flags['bounty_' + id] = d.rank === 'C' ? 90 : 40;
 }
 
 export function questCollectReady(qid: string): boolean {

@@ -133,7 +133,7 @@ function renderWorld(el: HTMLElement): void {
   if (G.blutmond > 0) el.appendChild(h('p', { class: 'blood' }, `Blutmond: noch ${G.blutmond} Tage. Physische Dungeons sind zu Blut-Dungeons geworden – dreifache Monster, kaum Rasträume.`));
   const l = h('div', { class: 'list' });
   for (const d of Object.values(G.dungeons)) {
-    l.appendChild(h('div', { class: 'item' }, h('span', { class: 'name' }, d.name, h('span', { class: 'tag' }, `${d.type} · Rang ${d.shownRank}`)),
+    l.appendChild(h('div', { class: 'item' }, h('span', { class: 'name' }, d.name, h('span', { class: 'tag' }, d.revealed ? `${d.type} · Rang ${d.rank}` : `${d.shownType ?? d.type} · Rang ${d.shownRank}`)),
       h('span', { class: d.solved ? 'good' : d.broken ? 'blood' : d.frist <= 7 ? 'blood' : 'dim' }, d.solved ? 'gelöst' : d.broken ? 'AUSGEBROCHEN' : `Frist: ${d.frist} Tage`)));
   }
   el.appendChild(l);

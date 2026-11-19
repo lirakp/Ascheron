@@ -89,6 +89,12 @@ const BG: Record<string, (c: Ctx) => void> = {
     // Torbogen in der Mitte
     sprite(c, 60, 70, (p) => { p.ellipse(30, 30, 28, 28, '#1e3420'); p.rect(2, 30, 56, 40, '#1e3420'); p.ellipse(30, 34, 18, 20, '#0a120c'); p.rect(12, 34, 36, 36, '#0a120c'); }, 130, 36);
   },
+  memory: (c) => {
+    bands(c, ['#1c2030', '#252a3c', '#2f3548', '#3a4256', '#465066'], 0, 104);
+    // schwebende Bruchstücke von Räumen
+    for (const [x, y, w, h] of [[30, 20, 40, 26], [120, 40, 30, 20], [210, 14, 50, 30], [270, 56, 30, 18], [80, 64, 26, 16]]) sprite(c, w + 2, h + 2, (p) => { p.rect(0, 0, w, h, '#5c6474'); p.rect(2, 2, w - 4, h - 4, '#3a4256'); p.rect(4, 4, Math.round(w / 3), Math.round(h / 3), '#8a96b0'); }, x, y);
+    for (let i = 0; i < 40; i++) R(c, (i * 71) % 320, (i * 37) % 100, 1, 1, '#c8d8f0');
+  },
   tower: (c) => {
     bricks(c, 0, 0, 320, 110, '#24262f', '#15171d', '#2e313c');
     for (let y = 0; y < 60; y += 4) { R(c, 238, y, 3, 3, '#d8d0bc'); R(c, 238, y, 3, 1, '#f0ead8'); }
@@ -107,6 +113,7 @@ const FLOOR: Record<string, { base: string; alt: string; line: string; lip: stri
   chalk: { base: '#c8c0ae', alt: '#bdb5a2', line: '#9a927e', lip: '#6a6458', light: '#e2dccc' },
   stone: { base: '#4e5262', alt: '#474b5a', line: '#2d2f3b', lip: '#16171f', light: '#6a6e82' },
   thorn: { base: '#4a5e3a', alt: '#435636', line: '#2c3c24', lip: '#16200f', light: '#62784a', edge: '#c0303a' },
+  memory: { base: '#5c6474', alt: '#566070', line: '#3a4050', lip: '#1c2030', light: '#7a8296' },
   tower: { base: '#3e4252', alt: '#383c4b', line: '#23252f', lip: '#101118', light: '#585c70' },
 };
 function floor(c: Ctx, kind: string): void {

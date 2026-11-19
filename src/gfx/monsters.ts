@@ -214,10 +214,33 @@ const inquisitor: Drawer = () => {
   return p;
 };
 
+const nachhall: Drawer = () => {
+  // flimmernde Luft in Hundegestalt: nur Umrisslinien, Lücken
+  const p = new PB(28, 18);
+  const c = '#c8d8f0', d = '#8aa0c8';
+  for (let x = 5; x < 24; x++) { if (x % 3 !== 0) { p.set(x, 6 + Math.round(Math.sin(x / 2) * 0.6), c); p.set(x, 12, d); } }
+  p.line(4, 6, 1, 9, c); p.line(1, 9, 4, 11, d); p.set(2, 7, '#ffffff');
+  for (const lx of [7, 10, 18, 21]) { p.line(lx, 12, lx - 1, 16, d); }
+  p.line(24, 7, 27, 3, c);
+  for (const [x, y] of [[0, 4], [2, 2], [5, 3], [26, 1], [13, 3], [16, 15]]) p.set(x, y, '#e8f0ff');
+  return p;
+};
+
+const schatten: Drawer = () => {
+  const p = new PB(18, 26);
+  const g = '#8a96b0', gd = '#5c6680';
+  p.ellipse(9, 6, 4, 4.5, g); p.rect(5, 10, 8, 10, g);
+  for (let y = 20; y < 26; y++) p.rect(5 + (y % 2), y, 8 - (y % 2) * 2, 1, gd);
+  p.rect(3, 11, 2, 7, gd); p.rect(13, 11, 2, 7, gd);
+  p.set(7, 6, '#e8f0ff'); p.set(11, 6, '#e8f0ff');
+  return p;
+};
+
 export const MONSTER_DRAWERS: Record<string, Drawer> = {
   m_aschhund: aschhund, m_kanalwuerger: kanalwuerger, m_kreidekriecher: kreidekriecher, m_hohlmann: hohlmann,
   m_kreidemutter: kreidemutter, m_flanke: flanke, m_sitzer: sitzer, m_gloeckner: gloeckner, m_kloeppel: kloeppel, m_blutgaenger: blutgaenger,
   m_rankenweber: rankenweber, m_gaertnerin: gaertnerin, m_herzrose: herzrose, m_inquisitor: inquisitor,
+  m_nachhall: nachhall, m_schatten: schatten,
 };
 
 export function monsterCanvas(key: string): HTMLCanvasElement {

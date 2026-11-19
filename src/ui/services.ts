@@ -171,6 +171,12 @@ function kirche(ctx: ServiceCtx): void {
       if (!cursed.length) l.appendChild(h('div', { class: 'dim' }, 'Keine verfluchte Ausrüstung.'));
       el.appendChild(l);
     }],
+    ['Stilleglocken', (el, rr) => {
+      el.appendChild(h('p', { style: 'font-size:13px' }, 'Glocken ohne Klöppel, geweiht für die Seelenhüter. Im Kampf legt eine Stilleglocke Stille über alle Feinde – Wesen aus Klang vergehen. In einer Erinnerungsschleife schluckt sie den Schrei eines Störenfrieds, bevor er beginnt.'));
+      const pr = priceFor(55) * (G.party[0].tattoo ? 2 : 1);
+      el.appendChild(h('div', { class: 'list' }, h('div', { class: 'item' }, slot('bell'), h('span', { class: 'name' }, 'Stilleglocke', h('span', { class: 'tag' }, `hast ${G.inv.stilleglocke ?? 0}`)), h('span', { class: 'gold' }, money(pr)),
+        btn('Kaufen', () => { if (pay(pr)) { addItem('stilleglocke'); rr(); } }, { cls: 'small' }))));
+    }],
     ['Licht-Bücher', (el, rr) => {
       el.appendChild(h('p', { style: 'font-size:13px' }, 'Die Kirche hält alle Licht-Bücher unter Verschluss und verleiht sie nur an Kleriker. ' + (hasCleric ? 'Für die Kleriker in deinem Trupp ist die Leihe kostenlos.' : 'Für Laien gibt es eine „Ausnahmegenehmigung“ – gegen Spende.')));
       const l = h('div', { class: 'list' });

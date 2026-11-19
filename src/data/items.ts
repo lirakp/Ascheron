@@ -18,6 +18,7 @@ export const ITEMS: Record<string, ItemDef> = {
   manatrank: { id: 'manatrank', name: 'Manatrank', kind: 'consumable', price: 40, mana: 25, desc: 'Füllt 25 Mana auf (beide Flüsse).' },
   riechsalz: { id: 'riechsalz', name: 'Riechsalz', kind: 'consumable', price: 60, revive: true, desc: 'Holt Bewusstlose mit 30 % LP zurück.' },
   kraeuterbund: { id: 'kraeuterbund', name: 'Kräuterbund', kind: 'consumable', price: 15, cleanse: true, heal: 10, desc: 'Entfernt Brand, Kreide, Müdigkeit und Blutung.' },
+  stilleglocke: { id: 'stilleglocke', name: 'Stilleglocke', kind: 'consumable', price: 55, desc: 'Eine Glocke ohne Klöppel aus der Kapelle. Im Kampf: Stille auf alle Feinde. In einer Erinnerungsschleife verhindert sie einen Störenfried-Bruch.' },
   proviant: { id: 'proviant', name: 'Tagesration', kind: 'consumable', price: 5, desc: 'In Dungeons zwingend. Ohne Proviant zehrt der Hunger am Trupp.' },
 
   moorkraut: { id: 'moorkraut', name: 'Moorkraut', kind: 'material', price: 3, desc: 'Bitteres Kraut aus den Mooren von Rabenmark.' },
@@ -34,6 +35,7 @@ export const ITEMS: Record<string, ItemDef> = {
   altbrot: { id: 'altbrot', name: 'Altes Brot', kind: 'material', price: 1, desc: 'Riecht nach Sitzer.' },
   dornenseide: { id: 'dornenseide', name: 'Dornenseide', kind: 'material', price: 35, desc: 'Reißfest und blutig. Schneider zahlen gut.' },
   herzrose: { id: 'herzrose', name: 'Rote Herzrose', kind: 'material', price: 900, desc: 'Das Herz der Gärtnerin. Sie verwelkt nicht.' },
+  erinnerungssplitter: { id: 'erinnerungssplitter', name: 'Erinnerungssplitter', kind: 'material', price: 180, desc: 'Ein Stück fremder Vergangenheit, kalt wie Glas. Sammler zahlen viel.' },
   plakette: { id: 'plakette', name: 'Kalte Seelenplakette', kind: 'key', price: 0, desc: 'Die Plakette eines toten Abenteurers. Die Gilde zahlt für die Rückgabe.' },
 };
 
@@ -80,7 +82,8 @@ export function rollDungeonGear(rng: () => number, dungeonRank: Rank, uid: strin
   const slot: 'weapon' | 'armor' | 'trinket' = r < 0.5 ? 'weapon' : r < 0.8 ? 'armor' : 'trinket';
   const roll = rng();
   // In D–B-Dungeons fällt selten A-Ausrüstung (mit Tribut)
-  const rank: Rank = roll < 0.06 ? 'A' : roll < 0.3 ? 'B' : 'C';
+  // Erinnerungs-Dungeons (Rang A+) haben Top-Beute
+  const rank: Rank = dungeonRank === 'A' || dungeonRank === 'S' || dungeonRank === 'SS' ? (roll < 0.4 ? 'A' : 'B') : roll < 0.06 ? 'A' : roll < 0.3 ? 'B' : 'C';
   const mult = { D: 0.7, C: 1, B: 1.6, A: 2.5, S: 4, SS: 6 }[rank] * (dungeonRank === 'C' ? 1.1 : 1);
   const names = SLEEP_NAMES[slot];
   const name = names[Math.floor(rng() * names.length)] + ` (${rank})`;

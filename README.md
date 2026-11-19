@@ -45,15 +45,20 @@ Die App ist nicht signiert. Windows SmartScreen zeigt deshalb beim ersten Start 
 - **Dornen-Tattoo:** Die Prinzessin der Dornen bietet es nach dem Sieg an.
   - Es hebt den Mana-Rang um eine Stufe, bei Halbwesen nur den schwächeren Fluss, und macht immun gegen Dornenfallen.
   - Dafür jagen Inquisitoren den Träger. Händler verlangen mehr, und die Kirche vermietet keine Kleriker mehr.
+- **Erinnerungs-Dungeons:** Die stille Fischerhütte am Steg und zufällige Erinnerungs-Dungeons (10 %).
+  - Von außen wirken sie wie Physische Dungeons mit Rang D, in Wahrheit sind sie Rang A. Es gibt viele Rasträume, und Proviant wird nicht verbraucht.
+  - Drei Erinnerungsschleifen mit Geisterszenen. Bei *aktiven* Schleifen steigt der Druck schnell, und man muss den Anker der Szene finden. Bei *inaktiven* steigt er langsam, die Szene kippt aber rasch, und man muss regungslos zusehen.
+  - Wer eine Regel bricht oder zu lange zögert, löst den Störenfried-Bruch aus: Ein Schrei lähmt alle, und der Störenfried stirbt oder wird Teil der Szene. Ein Kleriker kann ihn im letzten Moment mit Stille verhindern, ebenso eine Stilleglocke aus der Kapelle.
+  - Statt eines Bosses wartet ein Endrätsel. Die Hinweise stammen aus den Schleifen, `H` zeigt die bisher gefundenen. Es gibt drei Geschichten von Menschen, die der Fee etwas bezahlt haben.
+  - Nachhall-Hunde: Waffen gehen durch sie hindurch, Zauber wirken nur zu einem Viertel. Ihr Echo wiederholt die letzte Aktion des Trupps, jedes Mal lauter. Stille löscht sie sofort. Kleriker können das Stille-Gebet auch ohne Wind und Schatten sprechen.
 - **Balancing:** Die Kampfformeln liegen in `src/core/combat.ts`. `npm run balance` simuliert Kern- und Bosskämpfe sowie ganze Dungeon-Durchläufe für Anfänger, durchschnittliche und geübte Spieler.
 - **Rabenmark:** Krähenfurt mit sieben Gebäuden, Küste, Moore, Weißer Hang und Nordtor-Ruinen. Dazu Tag und Nacht, Kräuter, Gerüchte, Chronik und die Frist der Verlorenen Königin bis 139 n. S.
 
 ## Nächste Ausbaustufen
 
-1. Erinnerungs-Dungeons (getarnt als D/C, Schleifen aktiv/inaktiv, Störenfried-Bruch, Nachhall)
-2. Entitäten als Weltereignisse: Feldschmiede des Königs der Stärke, Wolf der Sünden, Sündenklingen
-3. Weitere Reiche: Kaldrion, Aurelsfeste, Veyrath, Eschenwacht, Erstarrte Lande (Zeitmotten)
-4. Touch-Steuerung, Musik, mehr Gefährten
+1. Entitäten als Weltereignisse: Feldschmiede des Königs der Stärke, Wolf der Sünden, Sündenklingen
+2. Weitere Reiche: Kaldrion, Aurelsfeste, Veyrath, Eschenwacht, Erstarrte Lande (Zeitmotten)
+3. Touch-Steuerung, Musik, mehr Gefährten
 
 ## Aufbau
 

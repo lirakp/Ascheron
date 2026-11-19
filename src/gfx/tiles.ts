@@ -8,12 +8,13 @@ export const T = {
   STALL: 40, DTOP: 41, CTOP: 42, SIGN: 43, DEEPSEA: 44, BONES: 45, PLATFORM: 46, LADDER: 47, TOWERBG: 48, CHAIN: 49, LAMP: 50,
   DWALL_MOSS: 51, DWALL_CRACK: 52, TORCH: 53, DFLOOR_CRACK: 54, PUDDLE: 55, RUBBLE: 56, CWALL_FOSSIL: 57, CFLOOR_CRACK: 58, PIPE: 59, COBWEB: 60, BANNER: 61,
   HEDGE: 62, HEDGE_TOP: 63, GARDEN: 64, THORN_GATE: 65, ROSEBED: 66,
+  MFLOOR: 67, MWALL: 68, MTOP: 69, MIRROR: 70, HUT: 71,
 } as const;
-export const TILE_COUNT = 67;
+export const TILE_COUNT = 72;
 
 const SOLID = new Set<number>([T.BOG, T.SEA, T.DEADTREE, T.ROCK, T.WALL, T.PALISADE, T.ROOF_R, T.ROOF_G, T.HWALL, T.DOOR, T.CHALKROCK,
   T.ENTRANCE, T.GRATE, T.RUIN, T.DWALL, T.CWALL, T.SWATER, T.BENCH, T.WINDOW, T.CHURCHWALL, T.WELL, T.TREE, T.ROOF_B, T.FENCE, T.STALL,
-  T.DTOP, T.CTOP, T.SIGN, T.DEEPSEA, T.STAIRS, T.EXIT, T.LAMP, T.DWALL_MOSS, T.DWALL_CRACK, T.TORCH, T.CWALL_FOSSIL, T.PIPE, T.BANNER, T.RUBBLE, T.HEDGE, T.HEDGE_TOP, T.THORN_GATE, T.ROSEBED]);
+  T.DTOP, T.CTOP, T.SIGN, T.DEEPSEA, T.STAIRS, T.EXIT, T.LAMP, T.DWALL_MOSS, T.DWALL_CRACK, T.TORCH, T.CWALL_FOSSIL, T.PIPE, T.BANNER, T.RUBBLE, T.HEDGE, T.HEDGE_TOP, T.THORN_GATE, T.ROSEBED, T.MWALL, T.MTOP, T.MIRROR, T.HUT]);
 export const isSolid = (t: number) => SOLID.has(t);
 
 type TD = (p: PB) => void;
@@ -133,6 +134,11 @@ const D: Record<number, TD> = {
   [T.GARDEN]: (p) => { fill(p, '#3e5a34'); for (const [x, y] of [[0, 0, 8, 8], [8, 8, 8, 8]] as number[][]) p.rect(x, y, 8, 8, '#45633a'); p.rect(0, 7, 16, 1, '#344d2c'); p.rect(7, 0, 1, 16, '#344d2c'); tuft(p, 2, 4, '#2f4a2a', '#5a8048'); tuft(p, 11, 12, '#2f4a2a', '#5a8048'); },
   [T.ROSEBED]: (p) => { D[T.GARDEN](p); obj(p, (o) => { o.ellipse(8, 10, 7, 5, '#2f5a2c'); for (const [x, y] of [[5, 8], [10, 9], [8, 12], [12, 12]]) { o.rect(x, y, 2, 2, '#c0303a'); } }, 0.3, 0.3); },
   [T.THORN_GATE]: (p) => { moor(p); obj(p, (o) => { o.ellipse(8, 9, 8, 8, '#2c4a2a'); o.rect(0, 9, 16, 7, '#2c4a2a'); }, 0.25, 0.3); p.ellipse(8, 11, 4.5, 5, '#06070c'); p.rect(4, 11, 9, 5, '#06070c'); for (const [x, y] of [[3, 4], [12, 5], [8, 2], [2, 9], [13, 10]]) p.set(x, y, '#c0303a'); },
+  [T.MFLOOR]: (p) => { fill(p, '#5c6474'); for (let i = 0; i < 16; i++) { p.set(i, 15, '#4a5160'); p.set(15, i, '#4a5160'); p.set(i, 0, '#6c7486'); p.set(0, i, '#6c7486'); } p.set(5, 6, '#7a8296'); p.set(11, 10, '#7a8296'); },
+  [T.MWALL]: (p) => { bricks(p, '#7a8294', '#4f5668', '#9aa2b4'); p.rect(0, 14, 16, 2, '#22262f'); p.set(4, 5, '#b8c0d0'); },
+  [T.MTOP]: (p) => { fill(p, '#262a35'); p.rect(0, 0, 16, 1, '#323746'); },
+  [T.MIRROR]: (p) => { D[T.MFLOOR](p); obj(p, (o) => { o.rect(3, 0, 10, 15, '#8a7a5a'); o.rect(4, 1, 8, 12, '#3a4458'); o.rect(5, 2, 2, 6, '#9ab0d0'); }, 0.3, 0.3); },
+  [T.HUT]: (p) => { D[T.SAND](p); obj(p, (o) => { o.rect(1, 6, 14, 10, '#7a5a3a'); for (let y = 0; y < 7; y++) o.rect(8 - y - 1, y, (y + 1) * 2, 1, '#5c6478'); }, 0.25, 0.3); p.rect(6, 10, 4, 6, '#06070c'); p.rect(2, 8, 2, 2, '#e8c070'); },
   [T.LAMP]: (p) => { cobble(p); obj(p, (o) => { o.rect(7, 5, 2, 11, '#2a2e3a'); o.rect(5, 1, 6, 5, '#2a2e3a'); }); p.rect(6, 2, 4, 3, '#f8d068'); p.rect(6, 2, 4, 1, '#fff2b0'); },
 };
 

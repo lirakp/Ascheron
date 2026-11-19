@@ -12,7 +12,7 @@ export interface AttackDef {
   statusChance?: number;
   text?: string;
   weight?: number;
-  special?: 'laeuten' | 'beschwoeren' | 'verhaerten' | 'ziehen' | 'zurueckschneiden' | 'bluehen';
+  special?: 'laeuten' | 'beschwoeren' | 'verhaerten' | 'ziehen' | 'zurueckschneiden' | 'bluehen' | 'echo';
 }
 
 export interface MonsterDef {
@@ -32,6 +32,7 @@ export interface MonsterDef {
   desc: string;
   part?: string; // Teil eines Bosses
   eyes?: number; // Rankenweber: erst nach allen getroffenen Rosenaugen tötbar
+  echo?: boolean; // Nachhall: Waffen gehen durch, Stille löscht ihn
 }
 
 const A = (name: string, hits: number, power: number, kind: 'parry' | 'dodge', extra: Partial<AttackDef> = {}): AttackDef =>
@@ -184,6 +185,29 @@ export const THORN_MONSTERS: Record<string, MonsterDef> = {
   },
 };
 Object.assign(MONSTERS, THORN_MONSTERS);
+
+export const MEMORY_MONSTERS: Record<string, MonsterDef> = {
+  nachhall: {
+    id: 'nachhall', name: 'Nachhall', rank: 'A', hp: 90, atk: 14, def: 0, mag: 8, spd: 12, xp: 60, echo: true,
+    weak: [], resist: [],
+    attacks: [
+      A('Echo', 1, 0.7, 'dodge', { special: 'echo', windup: 900, text: 'Er wiederholt, was zuletzt gesagt wurde – lauter.' }),
+    ],
+    drops: [],
+    sprite: 'm_nachhall', desc: 'Hunde aus Klang, nur sichtbar als flimmernde Luft. Sie wiederholen das zuletzt Gesagte, immer lauter, bis Ohren und Augen bluten. In Stille existieren sie nicht.',
+  },
+  erinnerungsschatten: {
+    id: 'erinnerungsschatten', name: 'Erinnerungsschatten', rank: 'B', hp: 120, atk: 17, def: 5, mag: 10, spd: 9, xp: 55, undead: true,
+    weak: ['licht'], resist: ['schatten'],
+    attacks: [
+      A('Vergessene Hand', 2, 0.65, 'parry', { gap: 380 }),
+      A('Fremdes Leid', 1, 1.1, 'dodge', { windup: 1100, status: 'muede', statusChance: 0.5, text: 'Eine Erinnerung, die nicht deine ist, drückt dich nieder.' }),
+    ],
+    drops: [{ item: 'erinnerungssplitter', chance: 0.25 }, { item: 'kern_mittel', chance: 0.4 }],
+    sprite: 'm_schatten', desc: 'Eine Gestalt aus einer Schleife, die sich losgerissen hat. Sie weiß nicht mehr, wem sie gehört.',
+  },
+};
+Object.assign(MONSTERS, MEMORY_MONSTERS);
 
 export function eliteOf(id: string): MonsterDef {
   const b = MONSTERS[id];

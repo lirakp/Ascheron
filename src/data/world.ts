@@ -1,3 +1,4 @@
+import { MEMORY_CODEX } from './memories';
 import type { Rank, DungeonState, Appearance, ClassId, El } from './types';
 
 export const MONTHS = ['Frostmond', 'Eismond', 'Tauwind', 'Saatmond', 'Blütenmond', 'Grünmond', 'Glutmond', 'Erntemond', 'Weinmond', 'Nebelmond', 'Aschmond', 'Dunkelmond'];
@@ -46,6 +47,8 @@ export const QUESTS: QuestDef[] = [
     desc: 'Ein Aschhund-Rudel reißt Vieh östlich der Stadt. Erlegt vier von ihnen.' },
   { id: 'q_kreide', name: 'Der Weiße Hang', rank: 'C', kind: 'dungeon', target: 'kreide', goal: 1, reward: 140, rp: 4,
     desc: 'Im Südosten hat sich ein Kreidedungeon geöffnet. Zwei Trupps sind nicht zurückgekehrt. Löst ihn, bevor die Frist abläuft.' },
+  { id: 'q_steg', name: 'Die stille Fischerhütte', rank: 'D', kind: 'dungeon', target: 'steg', goal: 1, reward: 30, rp: 1,
+    desc: 'Eine alte Fischerhütte am Steg westlich der Stadt. Seit einem Monat kommt niemand heraus, der hineingeht. Wahrscheinlich nur ein Kanalwürger. Leichter Auftrag für Frischlinge.' },
   { id: 'q_dorn', name: 'Der Dornhag', rank: 'B', kind: 'dungeon', target: 'dornhag', goal: 1, reward: 420, rp: 8, needRank: 'C',
     desc: 'Im Wald nordöstlich der Stadt ist ein Dorn-Dungeon gewachsen. Seit die Verlorene Königin auf dem Aschfeld rüstet, meiden ihn alle. Alle zwanzig Schritte eine Falle – nehmt einen Pfadfinder mit.' },
   { id: 'q_nordtor', name: 'Das Nordtor', rank: 'C', kind: 'dungeon', target: 'nordtor', goal: 1, reward: 260, rp: 6, needRank: 'C',
@@ -58,6 +61,8 @@ export function baseDungeons(): Record<string, DungeonState> {
       enemies: ['kanalwuerger', 'kanalwuerger', 'hohlmann'], boss: 'kanalwuerger_alt', rooms: 7, frist: 40, solved: false, broken: false, x: 30, y: 33, seed: 11 },
     kreide: { id: 'kreide', name: 'Kreidedungeon am Weißen Hang', theme: 'chalk', rank: 'C', shownRank: 'C', type: 'Physisch',
       enemies: ['kreidekriecher', 'kreidekriecher', 'hohlmann'], boss: 'kreidemutter', rooms: 10, frist: 55, solved: false, broken: false, x: 82, y: 54, seed: 23 },
+    steg: { id: 'steg', name: 'Die stille Fischerhütte', theme: 'memory', rank: 'A', shownRank: 'D', type: 'Erinnerung', shownType: 'Physisch', story: 0,
+      enemies: ['nachhall', 'erinnerungsschatten'], boss: '', rooms: 8, frist: 70, solved: false, broken: false, x: 11, y: 37, seed: 63 },
     dornhag: { id: 'dornhag', name: 'Der Dornhag', theme: 'thorn', rank: 'B', shownRank: 'B', type: 'Dorn',
       enemies: ['rankenweber', 'rankenweber', 'hohlmann'], boss: 'gaertnerin', rooms: 9, frist: 90, solved: false, broken: false, x: 58, y: 10, seed: 51 },
     nordtor: { id: 'nordtor', name: 'Nordtor-Dungeon', theme: 'stone', rank: 'C', shownRank: 'C', type: 'Physisch',
@@ -114,6 +119,7 @@ export const CODEX: { title: string; text: string[] }[] = [
     'Ein Zauber verbindet höchstens vier Elemente – wie viele, hängt vom Mana-Rang ab (C: 1, B: 2, A: 3, S: 4). Menschen können als einzigen Zweiklang die Heilung wirken.',
     'Zwei Gegensätze in einem Zauber ergeben einen Bruchklang: instabil, oft explosiv, von der Kirche verboten. Wer über sein Mana hinaus zaubert, blutet aus Nase und Augen und verliert das Bewusstsein.',
     'Licht-Bücher verleiht nur die Kirche, Schatten-Bücher gibt es nur bei der Rostigen Münze.'] },
+  { title: 'Erinnerungs-Dungeons', text: MEMORY_CODEX },
   { title: 'Die Entitäten', text: [
     'Sieben Entitäten stehen über allen Reichen: der König der Ewigkeit, die Prinzessin der Schmetterlinge, die Verlorene Königin, die Prinzessin der Dornen, der König der Stärke, der Wolf der Sünden und die Fee der zeitlosen Wünsche.',
     'Die Fee erscheint Verzweifelten am Abgrund oder in Dungeons. Sie dreht die Zeit von Zuständen zurück – und fordert dafür Erinnerungen.'] },

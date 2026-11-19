@@ -12,6 +12,7 @@ import { showFee } from '../ui/fee';
 import { advanceTime, onDungeonSolved, WorldEvent } from '../core/game';
 import { setEsc } from '../core/input';
 import { SFX } from '../core/sfx';
+import { MemoryController } from './memory';
 
 interface Trap { x: number; y: number; armed: boolean; seen: boolean; spr: Phaser.GameObjects.Image; kind: 'stacheln' | 'ranken' | 'pfeile' }
 interface Room { x: number; y: number; w: number; h: number; cx: number; cy: number; }
@@ -23,6 +24,7 @@ const THEME = {
   sewer: { floor: T.SFLOOR, wall: T.DWALL, top: T.DTOP, bg: 'sewer' },
   moor: { floor: T.DFLOOR, wall: T.DWALL, top: T.DTOP, bg: 'stone' },
   thorn: { floor: T.GARDEN, wall: T.HEDGE, top: T.HEDGE_TOP, bg: 'thorn' },
+  memory: { floor: T.MFLOOR, wall: T.MWALL, top: T.MTOP, bg: 'memory' },
 };
 
 export class DungeonScene extends Phaser.Scene {
@@ -52,13 +54,15 @@ export class DungeonScene extends Phaser.Scene {
   princess?: Phaser.GameObjects.Sprite;
   princessMet = false;
   snared = 0;
+  mem?: MemoryController;
+  loopRooms: Room[] = [];
   startRoom!: Room;
 
   constructor() { super('Dungeon'); }
 
   init(data: { id: string }): void {
     this.d = G.dungeons[data.id];
-    this.decor = []; this.traps = []; this.princess = undefined; this.princessMet = false; this.mobs = []; this.chests = []; this.inBattle = false; this.walked = 0; this.daysInside = 0; this.exitOpen = false;
+    this.mem = undefined; this.loopRooms = []; this.decor = []; this.traps = []; this.princess = undefined; this.princessMet = false; this.mobs = []; this.chests = []; this.inBattle = false; this.walked = 0; this.daysInside = 0; this.exitOpen = false;
     this.blut = G.blutmond > 0;
   }
 
@@ -81,6 +85,7 @@ export class DungeonScene extends Phaser.Scene {
 
     this.populate();
     if (this.d.theme === 'thorn') this.placeTraps();
+    if (this.d.theme === 'memory') this.mem = new MemoryController(this as never, this.d.story ?? 0, this.loopRooms, this.bossRoom);
     this.vision = this.add.image(this.player.x, this.player.y, 'vision').setScale(0.55).setDepth(40);
     for (const [x, y, k] of this.decor) if (this.tiles[y][x] === THEME[this.d.theme].floor) this.add.image(x * 16 + 8, y * 16 + 8, k).setDepth(1).setFlipX(((x * 7 + y) % 2) === 0);
     // Fackellicht: leuchtet durch die Dunkelheit und flackert
@@ -95,7 +100,7 @@ export class DungeonScene extends Phaser.Scene {
     this.add.particles(0, 0, 'px', { x: { min: -200, max: 200 }, y: { min: -120, max: 120 }, speedX: { min: -3, max: 3 }, speedY: { min: -4, max: 2 }, scale: 0.25, alpha: { start: 0.5, end: 0 }, lifespan: 4000, frequency: 120, tint: this.d.theme === 'chalk' ? 0xf0ead8 : 0xc8c0a8, follow: this.player }).setDepth(39);
     if (this.blut) this.add.rectangle(0, 0, 960, 540, 0x600808, 0.18).setOrigin(0).setScrollFactor(0).setDepth(41);
 
-    showHud(this.d.name + (this.blut ? ' · Blut-Dungeon' : ''), 'E: Interagieren · Esc: Menü');
+    showHud(this.d.name + (this.blut ? ' · Blut-Dungeon' : ''), this.d.theme === 'memory' ? 'E: Interagieren · H: Hinweise · Esc: Menü' : 'E: Interagieren · Esc: Menü');
     setEsc(() => { if (!isDialogOpen() && !this.inBattle) openMenu(() => { closeAllModals(); hideHud(); this.scene.start('Title'); }); });
     this.events.on('battleEnd', (r: { result: string; roamer?: Mob }) => this.afterBattle(r));
     this.events.once(Phaser.Scenes.Events.SHUTDOWN, () => { this.events.off('battleEnd'); this.events.off(Phaser.Scenes.Events.RESUME); });
@@ -104,6 +109,12 @@ export class DungeonScene extends Phaser.Scene {
     const lines = [
       { who: this.d.name, text: 'Hinter euch schließt sich die Schwelle. Wo eben noch der Ausgang war, ist nur noch Stein.' },
     ];
+    if (this.d.theme === 'memory') {
+      const first = !this.d.revealed;
+      this.d.revealed = true;
+      lines.push({ who: this.d.name, text: first ? `Das ist kein Physischer Dungeon. Die Luft ist kalt und riecht nach fremden Wohnungen. Ein Erinnerungs-Dungeon – und er ist mindestens Rang ${this.d.rank}.` : 'Wieder diese kalte Luft. Die Erinnerung wartet auf dich.' });
+      lines.push({ who: 'Hinweis', text: 'Drei Räume schimmern blau: Erinnerungsschleifen. Am Ende wartet ein Rätsel statt eines Bosses. H zeigt die gefundenen Hinweise. Mehr steht im Menü unter „Wissen“.' });
+    }
     if (this.blut) lines.push({ who: this.d.name, text: 'Der Blutmond hat diesen Ort verändert. Es riecht nach Eisen. Hier gibt es keinen sicheren Schlaf.' });
     if (this.d.theme === 'chalk') lines.push({ who: 'Hinweis', text: 'Wo feiner Staub von der Decke rieselt, hängt etwas. Ein Pfadfinder im Trupp verhindert Hinterhalte.' });
     if (this.d.id === 'nordtor') lines.push({ who: 'Hinweis', text: 'Steinbänke. Ein Wartesaal. Die Gestalten darauf bewegen sich nur, wenn niemand hinsieht. Und jeder blinzelt irgendwann.' });
@@ -186,8 +197,16 @@ export class DungeonScene extends Phaser.Scene {
         if (this.tiles[cy][cx] === th.floor && !(cx === rm.cx || cx === rm.cx + 1)) this.tiles[cy][cx] = chalk ? T.CHALKROCK : T.RUBBLE;
       }
     }
+    // Erinnerungs-Dungeon: drei Schleifenräume, Rätselraum, sonst viele sichere Räume
+    if (this.d.theme === 'memory') {
+      const inner = ordered.slice(1, -1);
+      const pick = [Math.floor(inner.length * 0.15), Math.floor(inner.length * 0.5), inner.length - 1];
+      this.loopRooms = [...new Set(pick)].map((i) => inner[i]);
+      for (const rm of inner) if (!this.loopRooms.includes(rm) && r() < 0.6) { this.tiles[rm.cy][rm.cx] = T.SAFE; (rm as Room & { safe?: boolean }).safe = true; }
+      this.tiles[ordered[ordered.length - 1].cy][ordered[ordered.length - 1].cx] = T.MIRROR;
+    }
     // Sicherer Raum (nicht bei Blutmond)
-    if (!this.blut && ordered.length > 3) {
+    if (this.d.theme !== 'memory' && !this.blut && ordered.length > 3) {
       const sr = ordered[Math.floor(ordered.length / 2)];
       this.tiles[sr.cy][sr.cx] = T.SAFE;
       (sr as Room & { safe?: boolean }).safe = true;
@@ -211,7 +230,13 @@ export class DungeonScene extends Phaser.Scene {
     this.rooms.forEach((rm, i) => {
       if (rm === this.startRoom || (rm as Room & { safe?: boolean }).safe) return;
       if (rm === this.bossRoom) {
-        if (!this.d.tower) this.spawnMob(this.d.boss, rm.cx, rm.cy, true);
+        if (!this.d.tower && this.d.boss) this.spawnMob(this.d.boss, rm.cx, rm.cy, true);
+        return;
+      }
+      if (this.loopRooms.includes(rm)) return;
+      if (this.d.theme === 'memory') {
+        if (r() < 0.55) { const [x, y] = free(rm); this.spawnMob(this.d.enemies[Math.floor(r() * this.d.enemies.length)], x, y); }
+        if (r() < 0.5) { const [x, y] = free(rm); this.chests.push({ spr: this.add.image(x * 16 + 8, y * 16 + 8, 'chest').setDepth(6), opened: false, x, y }); }
         return;
       }
       let n = 1 + (r() < 0.5 ? 1 : 0);
@@ -278,7 +303,8 @@ export class DungeonScene extends Phaser.Scene {
         this.time.delayedCall(260, () => { this.cameras.main.fadeIn(90); this.blinking = false; });
       }
     }
-    this.updateMobs(dt, blocked);
+    this.mem?.update(dt);
+    if (this.mem?.current) { for (const m of this.mobs) (m.spr.body as Phaser.Physics.Arcade.Body).setVelocity(0); } else this.updateMobs(dt, blocked);
     if (this.traps.length && !blocked) this.updateTraps(dt);
     if (this.princess && !this.princessMet && !blocked && Phaser.Math.Distance.Between(this.princess.x, this.princess.y, this.player.x, this.player.y) < 30) this.meetPrincess();
   }
@@ -287,7 +313,8 @@ export class DungeonScene extends Phaser.Scene {
     const before = Math.floor(this.daysInside);
     this.daysInside += days;
     const ev = advanceTime(days, this.d.id);
-    if (Math.floor(this.daysInside) > before) {
+    if (Math.floor(this.daysInside) > before && this.d.theme === 'memory') toast('Ein Tag vergeht. Dieser Ort nährt euch – auf seltsame Weise. Niemand hat Hunger.');
+    else if (Math.floor(this.daysInside) > before) {
       const need = G.party.length;
       const have = G.inv.proviant ?? 0;
       if (have >= need) { G.inv.proviant = have - need; toast(`Ein Tag vergeht im Dungeon. Der Trupp isst ${need} Ration(en).`); }
@@ -394,6 +421,21 @@ export class DungeonScene extends Phaser.Scene {
       }, () => { hideHud(); this.scene.start('World'); });
     }
     updateHud();
+  }
+
+  /** Kampf ohne Monster-Symbol (z. B. Nachhall aus dem Endrätsel). */
+  battleWith(enemies: string[]): void {
+    if (this.inBattle) return;
+    this.inBattle = true;
+    SFX.encounter();
+    this.cameras.main.flash(200, 255, 255, 255);
+    this.time.delayedCall(250, () => { this.scene.pause(); this.scene.launch('Battle', { enemies, bg: THEME[this.d.theme].bg, caller: 'Dungeon', canFlee: true }); });
+  }
+
+  /** Niederlage außerhalb eines Kampfes (Störenfried-Bruch): die Fee. */
+  defeatAt(room: { cx: number; cy: number }): void {
+    showFee(() => { this.player.setPosition(room.cx * 16 + 8, room.cy * 16 + 8); toast('Die Fee hat die Zeit deines Zustands zurückgedreht. Die Erinnerung hält dich weiter fest.', 'big', 4500); updateHud(); },
+      () => { hideHud(); this.scene.start('World'); });
   }
 
   openExit(): void {
@@ -521,6 +563,7 @@ export class DungeonScene extends Phaser.Scene {
 
   interact(): void {
     if (this.traps.length && this.disarmNear()) return;
+    if (this.mem?.interact()) return;
     for (const c of this.chests) {
       if (c.opened) continue;
       if (Phaser.Math.Distance.Between(c.spr.x, c.spr.y, this.player.x, this.player.y + 6) < 20) { this.openChest(c); return; }

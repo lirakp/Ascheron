@@ -37,6 +37,7 @@ interface Fighter {
   parent?: Fighter;
   parts: Fighter[];
   herz: number;
+  echoN?: number;
   eyes?: number;
   dealt?: number;
   barG?: Phaser.GameObjects.Graphics;
@@ -45,7 +46,7 @@ interface Fighter {
 }
 
 interface BattleData { enemies: string[]; bg: string; caller: string; roamer?: unknown; canFlee?: boolean; ambush?: boolean; }
-interface HitInfo { precise?: boolean; licht?: boolean; tech?: string; }
+interface HitInfo { precise?: boolean; licht?: boolean; tech?: string; spell?: boolean; }
 
 const STATUS_NAME: Record<string, string> = {
   brand: 'Brand', langsam: 'Verlangsamt', betaeubt: 'Betäubt', steinhaut: 'Steinhaut', schleier: 'Schleier', stille: 'Stille',
@@ -76,6 +77,7 @@ export class BattleScene extends Phaser.Scene {
   selArrow!: Phaser.GameObjects.Text;
   menuKeys: Record<string, () => void> = {};
   shadows: { f: Fighter; sh: Phaser.GameObjects.Ellipse }[] = [];
+  lastAction = 'Angriff';
 
   constructor() { super('Battle'); }
 
@@ -126,6 +128,7 @@ export class BattleScene extends Phaser.Scene {
         p.parent = f; f.parts.push(p);
       }
       if (def.eyes) f.eyes = def.eyes;
+      if (def.echo) this.tweens.add({ targets: spr, alpha: { from: 0.35, to: 0.95 }, yoyo: true, repeat: -1, duration: 140 + Math.random() * 120 });
       if (def.id === 'gaertnerin') {
         const hd = MONSTERS.gaertnerin_herz;
         spr.setScale(2.6);
@@ -418,6 +421,13 @@ export class BattleScene extends Phaser.Scene {
       const d = ITEMS[id];
       body.appendChild(h('div', { class: 'row', style: 'padding:4px 0;border-bottom:1px solid var(--line2)' }, slot(ITEM_ICON[id] ?? 'bag', 30), h('span', { class: 'grow' }, `${d.name} ×${G.inv[id]}`, h('div', { class: 'dim', style: 'font-size:12px' }, d.desc)),
         btn('Benutzen', async () => {
+          if (id === 'stilleglocke') {
+            G.inv[id]--; if (G.inv[id] <= 0) delete G.inv[id];
+            this.subEl!.style.display = 'none';
+            this.say('Die Stilleglocke schwingt – und kein Ton entsteht.', '#cfe0ff'); SFX.bell();
+            for (const e of this.enemiesAlive()) { if (e.mdef?.echo) this.silenceEcho(e); else this.applyStatus(e, 'stille', 3); }
+            setEsc(() => this.cancel()); this.renderParty(); await this.wait(700); done(); return;
+          }
           const list = this.F.filter((x) => x.side === 'p' && (d.revive ? !x.alive : x.alive));
           if (!list.length) { toast('Kein passendes Ziel.', 'bad'); return; }
           this.subEl!.style.display = 'none';
@@ -463,6 +473,10 @@ export class BattleScene extends Phaser.Scene {
         this.menuKeys.Enter = () => { if (allowed) cast(); };
       }
       const known = G.formulas.map((k) => resolveSpell(k.split('+') as El[])).filter((s): s is SpellDef => !!s && s.els.every((e) => m.elements.includes(e)) && (s.els.length <= cap || s.name === 'Heilung'));
+      if (m.cls === 'kleriker') {
+        // Seelenhüter kennen das Stille-Gebet, auch ohne Wind und Schatten
+        body.appendChild(h('div', { style: 'margin-top:8px' }, btn('Stille (Gebet der Seelenhüter, 9 Mana)', () => { sel.length = 0; sel.push('wind', 'schatten'); cast(); }, { cls: 'small' })));
+      }
       if (known.length) {
         body.appendChild(h('div', { class: 'dim', style: 'font-size:12px;margin-top:8px' }, 'Bekannte Formeln:'));
         body.appendChild(h('div', { class: 'row', style: 'flex-wrap:wrap;gap:4px' }, ...known.map((s) => btn(s.name, () => { sel.length = 0; sel.push(...s.els); render(); }, { cls: 'small' }))));
@@ -505,6 +519,7 @@ export class BattleScene extends Phaser.Scene {
       G.formulas.push(sp.key); toast(`Neue Formel entdeckt: ${sp.name}`, 'big', 3500);
     }
     this.say(`${m.name}: ${sp.name}`, sp.bruch ? '#ff7a6a' : '#cfe0ff');
+    this.lastAction = sp.name;
     // Effekt-Animation
     const col = Phaser.Display.Color.HexStringToColor(EL_COLOR[els[0]]).color;
     this.pose(f, 'cast');
@@ -526,7 +541,7 @@ export class BattleScene extends Phaser.Scene {
         const weak = !!t.mdef && els.some((e) => t.mdef!.weak.includes(e));
         const res = !!t.mdef && els.some((e) => t.mdef!.resist.includes(e));
         const base = spellDamage(f.mag, sp.power, t.def, { weak, resist: res, undeadLicht: !!t.mdef?.undead && els.includes('licht'), bonus: darkBonus });
-        this.damage(t, base, { licht: els.includes('licht') }, weak ? 'Schwachstelle!' : res ? 'widersteht' : undefined);
+        this.damage(t, base, { licht: els.includes('licht'), spell: true }, weak ? 'Schwachstelle!' : res ? 'widersteht' : undefined);
         if (sp.status && t.alive && Math.random() < 0.45) this.applyStatus(t, sp.status, 3);
       } else if (sp.kind === 'heal') {
         const amt = healAmount(f.mag, sp.power);
@@ -536,6 +551,7 @@ export class BattleScene extends Phaser.Scene {
         this.applyStatus(t, sp.status!, sp.status === 'schleier' ? 2 : 3);
       } else if (sp.kind === 'debuff') {
         if (sp.status === 'stille') {
+          if (t.mdef?.echo) { this.silenceEcho(t); continue; }
           this.applyStatus(t, 'stille', 3);
         } else { this.damage(t, f.mag * 0.5, {}); if (t.alive) this.applyStatus(t, sp.status!, 3); }
       }
@@ -579,6 +595,7 @@ export class BattleScene extends Phaser.Scene {
 
   async doAttack(f: Fighter, t: Fighter, mult = 1, opts: { ignoreDef?: number; tech?: string; noTiming?: boolean } = {}): Promise<void> {
     this.say(`${f.name} greift an`);
+    this.lastAction = opts.tech ? (TECHS[opts.tech]?.name ?? 'Angriff') : 'Angriff';
     this.pose(f, 'windup');
     await this.wait(130);
     this.pose(f, 'ready');
@@ -597,9 +614,11 @@ export class BattleScene extends Phaser.Scene {
   }
 
   damage(t: Fighter, raw: number, info: HitInfo, note?: string): void {
+    raw = Math.max(0, raw);
     if (!t.alive) return;
     if (t.st.verkrustet) { this.float(t, 'Verkrustet – kein Schaden', '#d8d2c4'); return; }
     if (t.st.dornenkaefig) { this.float(t, 'Der Dornenkäfig schützt die Rose', '#9ac080'); return; }
+    if (t.mdef?.echo) { if (!info.spell) { this.float(t, 'Die Waffe fährt durch flimmernde Luft', '#c8d8f0'); return; } raw *= 0.25; }
     const d = roll(raw, Math.random, !!t.st.wehrlos);
     t.hp -= d;
     if (this.current && this.current.side === 'p' && t.side === 'e') this.current.dealt = (this.current.dealt ?? 0) + d;
@@ -704,11 +723,17 @@ export class BattleScene extends Phaser.Scene {
       return true;
     });
     if (!pool.length) pool = def.attacks.filter((a) => !a.special);
+    if (!pool.length) { this.say(`${f.name} ist verstummt.`, '#c8d8f0'); await this.wait(600); return; }
     if (f.st.wehrlos) pool = [{ name: 'Kraftloser Hieb', hits: 1, power: 0.6, kind: 'parry', windup: 1200, gap: 0, target: 'one' }];
     const tot = pool.reduce((s, a) => s + (a.weight ?? 1), 0);
     let r = Math.random() * tot;
     let atk = pool[0];
     for (const a of pool) { r -= a.weight ?? 1; if (r <= 0) { atk = a; break; } }
+    if (atk.special === 'echo') {
+      // Er wiederholt das zuletzt Gesagte – lauter und schneller, bis Ohren und Augen bluten
+      f.echoN = (f.echoN ?? 0) + 1;
+      atk = { ...atk, name: `Echo: „${this.lastAction}“`, power: 0.45 + 0.2 * f.echoN, hits: Math.min(2, 1 + Math.floor(f.echoN / 2)), gap: 320, status: 'blutung', statusChance: 0.5, special: undefined, text: f.echoN > 1 ? 'Lauter. Schneller.' : atk.text };
+    }
     this.say(`${f.name}: ${atk.name}`, '#ff9a90');
     if (atk.text) this.time.delayedCall(700, () => this.say(atk.text!, '#ffcfa0'));
     await this.wait(500);
@@ -766,6 +791,13 @@ export class BattleScene extends Phaser.Scene {
     }
     await this.tweenTo(f.spr, { x: f.hx, y: f.hy }, 300);
     if (f.alive && f.mdef?.id !== 'gloeckner') this.tweens.add({ targets: f.spr, scaleY: f.spr.scaleY * 1.04, yoyo: true, repeat: -1, duration: 900, ease: 'Sine.easeInOut' });
+  }
+
+  /** Stille löscht einen Nachhall vollständig. */
+  silenceEcho(t: Fighter): void {
+    this.float(t, 'Verstummt', '#c8d8f0', true);
+    this.say('In der Stille existiert der Nachhall nicht.', '#cfe0ff');
+    t.hp = 0; this.kill(t, { spell: true });
   }
 
   /** Setzt die Kampfpose einer Figur aus dem Trupp. */

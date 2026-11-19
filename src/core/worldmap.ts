@@ -112,6 +112,12 @@ export function buildWorld(): WorldMap {
   for (let y = 2; y <= 8; y++) { set(24, y, y % 4 ? T.RUIN : T.GRASS2); set(36, y, T.RUIN); }
   set(30, 4, T.ENTRANCE); set(29, 4, T.RUIN); set(31, 4, T.RUIN); set(30, 3, T.RUIN); set(29, 3, T.RUIN); set(31, 3, T.RUIN);
   labels.push({ x: 30, y: 1.6, text: 'Nordtor-Turm' });
+  // Die stille Fischerhütte am Strand (getarnter Erinnerungs-Dungeon)
+  for (let y = 35; y <= 40; y++) for (let x = 9; x <= 13; x++) set(x, y, T.SAND);
+  for (let x = 4; x <= 9; x++) set(x, 38, T.PLANK);
+  set(11, 37, T.HUT);
+  for (let y = 33; y <= 36; y++) set(12, y, T.PATH);
+  labels.push({ x: 11, y: 35.6, text: 'Fischerhütte' });
   // Der Dornhag: Dorn-Dungeon im Wald nordöstlich
   for (let y = 6; y <= 14; y++) for (let x = 54; x <= 62; x++) set(x, y, Math.hypot(x - 58, y - 10) < 3.2 ? T.GARDEN : r() < 0.55 ? T.HEDGE : T.ROSEBED);
   for (let y = 10; y <= 30; y++) { set(58, y, T.PATH); set(59, y, T.PATH); }

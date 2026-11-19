@@ -34,3 +34,6 @@ game = new Phaser.Game({
 });
 (window as unknown as { __game: Phaser.Game }).__game = game;
 setTimeout(fit, 50);
+
+// Nur im Entwicklungsmodus: Zugriff für automatisierte Tests
+if (import.meta.env.DEV) void import('./core/state').then((st) => { (window as unknown as { __state: typeof st }).__state = st; });

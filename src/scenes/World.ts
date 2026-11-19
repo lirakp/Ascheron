@@ -108,6 +108,7 @@ export class WorldScene extends Phaser.Scene {
     if (x >= t.x0 && x <= t.x1 && y >= t.y0 && y <= t.y1) return 'Krähenfurt';
     if (y < 10 && x > 22 && x < 38) return 'Nordtor-Ruinen';
     if (Math.hypot(x - 58, y - 10) < 6) return 'Der Dornhag';
+    if (Math.hypot(x - 11, y - 37) < 4) return 'Fischerhütte am Steg';
     if (Math.hypot((x - 84) / 15, (y - 57) / 11) < 1) return 'Weißer Hang';
     if (x > 46) return 'Moore von Rabenmark';
     if (x < 12) return 'Küste';
@@ -364,7 +365,7 @@ export class WorldScene extends Phaser.Scene {
     if (sign) { dialog([{ who: 'Schild', text: sign }]); return; }
     if (tile === T.WELL) { dialog([{ who: 'Brunnen', text: 'Das Wasser riecht nach Kanal. Unten glänzt etwas – eine eiserne Plakette? Zu tief.' }]); return; }
     if (tile === T.STALL) { dialog([{ who: 'Marktstand', text: 'Rüben, Moorkraut, geräucherter Aal. Der Händler starrt auf das Gitter vor seinem Stand.' }]); return; }
-    if (tile === T.ENTRANCE || tile === T.GRATE || tile === T.THORN_GATE) {
+    if (tile === T.ENTRANCE || tile === T.GRATE || tile === T.THORN_GATE || tile === T.HUT) {
       const d = Object.values(G.dungeons).find((x) => x.x === tx && x.y === ty);
       if (d) this.askDungeon(d.id);
     }
@@ -375,7 +376,7 @@ export class WorldScene extends Phaser.Scene {
     if (d.solved) { dialog([{ who: d.name, text: 'Der Dungeon ist gelöst. Nur noch kalter Stein – die Schwelle ist erloschen.' }]); return; }
     const blut = G.blutmond > 0;
     const body = h('div', {},
-      h('p', {}, `Typ: ${blut ? 'Blut-Dungeon (Blutmond!)' : d.type} · Rang von außen: ${d.shownRank} · Frist: ${d.broken ? 'abgelaufen – AUSGEBROCHEN' : d.frist + ' Tage'}`),
+      h('p', {}, `Typ: ${blut && d.type !== 'Erinnerung' ? 'Blut-Dungeon (Blutmond!)' : d.revealed ? d.type + ' (Rang ' + d.rank + ')' : (d.shownType ?? d.type)} · Rang von außen: ${d.shownRank} · Frist: ${d.broken ? 'abgelaufen – AUSGEBROCHEN' : d.frist + ' Tage'}`),
       h('p', { class: 'blood' }, 'Die Einweg-Schwelle: Sobald ihr eintretet, verschwindet der Ausgang. Ihr kommt nur durch Sieg wieder heraus – oder gar nicht.'),
       h('p', {}, `Proviant: ${G.inv.proviant ?? 0} Tagesrationen · Heiltränke: ${G.inv.heiltrank ?? 0} · Trupp: ${G.party.map((m) => m.name).join(', ')}`),
       (G.inv.proviant ?? 0) < 4 ? h('p', { class: 'blood' }, 'Warnung: Zu wenig Proviant. Ohne Vorräte zehrt der Hunger am Trupp.') : null,

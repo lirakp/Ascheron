@@ -156,7 +156,16 @@ export function load(): boolean {
     const raw = localStorage.getItem(SAVE_KEY);
     if (!raw) return false;
     G = JSON.parse(raw) as GameState;
+    migrate();
     return true;
   } catch { return false; }
 }
 export function setState(s: GameState): void { G = s; }
+
+/** Ältere Spielstände um neue Aufträge und Dungeons ergänzen. */
+function migrate(): void {
+  for (const q of QUESTS) if (!G.quests[q.id]) G.quests[q.id] = { status: 'offen', progress: 0 };
+  const base = baseDungeons();
+  for (const [id, d] of Object.entries(base)) if (!G.dungeons[id]) G.dungeons[id] = d;
+  G.flags = G.flags ?? {};
+}

@@ -64,10 +64,13 @@ export interface QuestState { status: 'offen' | 'angenommen' | 'erfuellt' | 'abg
 export interface DungeonState {
   id: string;
   name: string;
-  theme: 'sewer' | 'chalk' | 'stone' | 'moor' | 'thorn';
+  theme: 'sewer' | 'chalk' | 'stone' | 'moor' | 'thorn' | 'memory';
   rank: Rank;
   shownRank: string;
-  type: 'Physisch' | 'Blut' | 'Dorn';
+  type: 'Physisch' | 'Blut' | 'Dorn' | 'Erinnerung';
+  shownType?: string; // von außen sichtbarer Typ (Erinnerungs-Dungeons tarnen sich)
+  story?: number;
+  revealed?: boolean;
   enemies: string[];
   boss: string;
   rooms: number;
