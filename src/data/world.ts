@@ -46,6 +46,8 @@ export const QUESTS: QuestDef[] = [
     desc: 'Ein Aschhund-Rudel reißt Vieh östlich der Stadt. Erlegt vier von ihnen.' },
   { id: 'q_kreide', name: 'Der Weiße Hang', rank: 'C', kind: 'dungeon', target: 'kreide', goal: 1, reward: 140, rp: 4,
     desc: 'Im Südosten hat sich ein Kreidedungeon geöffnet. Zwei Trupps sind nicht zurückgekehrt. Löst ihn, bevor die Frist abläuft.' },
+  { id: 'q_dorn', name: 'Der Dornhag', rank: 'B', kind: 'dungeon', target: 'dornhag', goal: 1, reward: 420, rp: 8, needRank: 'C',
+    desc: 'Im Wald nordöstlich der Stadt ist ein Dorn-Dungeon gewachsen. Seit die Verlorene Königin auf dem Aschfeld rüstet, meiden ihn alle. Alle zwanzig Schritte eine Falle – nehmt einen Pfadfinder mit.' },
   { id: 'q_nordtor', name: 'Das Nordtor', rank: 'C', kind: 'dungeon', target: 'nordtor', goal: 1, reward: 260, rp: 6, needRank: 'C',
     desc: 'Hinter dem alten Nordtor steht ein Turm, aus dem nachts eine Glocke läutet. Wer zu lange wartet, dem bleibt das Herz stehen. Nur für Rang C.' },
 ];
@@ -56,6 +58,8 @@ export function baseDungeons(): Record<string, DungeonState> {
       enemies: ['kanalwuerger', 'kanalwuerger', 'hohlmann'], boss: 'kanalwuerger_alt', rooms: 7, frist: 40, solved: false, broken: false, x: 30, y: 33, seed: 11 },
     kreide: { id: 'kreide', name: 'Kreidedungeon am Weißen Hang', theme: 'chalk', rank: 'C', shownRank: 'C', type: 'Physisch',
       enemies: ['kreidekriecher', 'kreidekriecher', 'hohlmann'], boss: 'kreidemutter', rooms: 10, frist: 55, solved: false, broken: false, x: 82, y: 54, seed: 23 },
+    dornhag: { id: 'dornhag', name: 'Der Dornhag', theme: 'thorn', rank: 'B', shownRank: 'B', type: 'Dorn',
+      enemies: ['rankenweber', 'rankenweber', 'hohlmann'], boss: 'gaertnerin', rooms: 9, frist: 90, solved: false, broken: false, x: 58, y: 10, seed: 51 },
     nordtor: { id: 'nordtor', name: 'Nordtor-Dungeon', theme: 'stone', rank: 'C', shownRank: 'C', type: 'Physisch',
       enemies: ['sitzer', 'sitzer', 'hohlmann'], boss: 'gloeckner', rooms: 6, frist: 75, solved: false, broken: false, tower: true, x: 30, y: 4, seed: 37 },
   };

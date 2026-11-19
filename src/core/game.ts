@@ -64,21 +64,23 @@ export function setFreeSpots(s: [number, number][]): void { freeSpotsRef = s; }
 
 export function spawnRandomDungeon(): DungeonState | null {
   const r = Math.random;
-  const theme = (['stone', 'chalk', 'sewer', 'stone'] as const)[Math.floor(r() * 4)];
+  const theme = r() < 0.15 ? 'thorn' as const : (['stone', 'chalk', 'sewer', 'stone'] as const)[Math.floor(r() * 4)];
   const pools: Record<string, string[]> = {
     stone: ['aschhund', 'hohlmann', 'hohlmann'],
     chalk: ['kreidekriecher', 'kreidekriecher', 'hohlmann'],
     sewer: ['kanalwuerger', 'hohlmann'],
+    thorn: ['rankenweber', 'hohlmann'],
   };
   const pool = pools[theme];
   const rank: Rank = G.advRank === 'D' ? (r() < 0.75 ? 'D' : 'C') : (r() < 0.5 ? 'C' : 'D');
+  const thorn = theme === 'thorn';
   const spots = freeSpotsRef.filter(([x, y]) => Object.values(G.dungeons).every((d) => Math.hypot(d.x - x, d.y - y) > 8));
   if (!spots.length) return null;
   const [x, y] = spots[Math.floor(r() * spots.length)];
   const id = 'z' + Math.floor(G.day) + '_' + Math.floor(r() * 1000);
   const name = `${PREFIX[Math.floor(r() * PREFIX.length)]} ${NOUNS[theme][Math.floor(r() * NOUNS[theme].length)]} im Moor`;
   const d: DungeonState = {
-    id, name, theme, rank, shownRank: rank, type: 'Physisch', enemies: pool, boss: pool[0] + '_elite',
+    id, name, theme, rank: thorn ? 'C' : rank, shownRank: thorn ? 'C' : rank, type: thorn ? 'Dorn' : 'Physisch', enemies: pool, boss: pool[0] + '_elite',
     rooms: rank === 'D' ? 6 : 8, frist: 18 + Math.floor(r() * 14), solved: false, broken: false, x, y, seed: Math.floor(r() * 99999), generated: true,
   };
   G.dungeons[id] = d;

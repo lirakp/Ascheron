@@ -1,5 +1,5 @@
 import Phaser from 'phaser';
-import { G, mulberry32, save, addItem, newUid, stats, fullHeal, itemName, money } from '../core/state';
+import { G, mulberry32, save, addItem, newUid, stats, fullHeal, itemName, money, log } from '../core/state';
 import type { DungeonState } from '../data/types';
 import { T, isSolid, TILE_COUNT } from '../gfx/tiles';
 import { ensureChar } from '../gfx/tex';
@@ -13,6 +13,7 @@ import { advanceTime, onDungeonSolved, WorldEvent } from '../core/game';
 import { setEsc } from '../core/input';
 import { SFX } from '../core/sfx';
 
+interface Trap { x: number; y: number; armed: boolean; seen: boolean; spr: Phaser.GameObjects.Image; kind: 'stacheln' | 'ranken' | 'pfeile' }
 interface Room { x: number; y: number; w: number; h: number; cx: number; cy: number; }
 interface Mob { spr: Phaser.Physics.Arcade.Sprite; kind: string; boss?: boolean; hidden?: boolean; dust?: Phaser.GameObjects.Particles.ParticleEmitter; home: Phaser.Math.Vector2; t: number; dir: Phaser.Math.Vector2; }
 
@@ -21,6 +22,7 @@ const THEME = {
   chalk: { floor: T.CFLOOR, wall: T.CWALL, top: T.CTOP, bg: 'chalk' },
   sewer: { floor: T.SFLOOR, wall: T.DWALL, top: T.DTOP, bg: 'sewer' },
   moor: { floor: T.DFLOOR, wall: T.DWALL, top: T.DTOP, bg: 'stone' },
+  thorn: { floor: T.GARDEN, wall: T.HEDGE, top: T.HEDGE_TOP, bg: 'thorn' },
 };
 
 export class DungeonScene extends Phaser.Scene {
@@ -45,13 +47,18 @@ export class DungeonScene extends Phaser.Scene {
   stepT = 0;
   bossRoom!: Room;
   decor: [number, number, string][] = [];
+  traps: Trap[] = [];
+  trapCd = 0;
+  princess?: Phaser.GameObjects.Sprite;
+  princessMet = false;
+  snared = 0;
   startRoom!: Room;
 
   constructor() { super('Dungeon'); }
 
   init(data: { id: string }): void {
     this.d = G.dungeons[data.id];
-    this.decor = []; this.mobs = []; this.chests = []; this.inBattle = false; this.walked = 0; this.daysInside = 0; this.exitOpen = false;
+    this.decor = []; this.traps = []; this.princess = undefined; this.princessMet = false; this.mobs = []; this.chests = []; this.inBattle = false; this.walked = 0; this.daysInside = 0; this.exitOpen = false;
     this.blut = G.blutmond > 0;
   }
 
@@ -73,6 +80,7 @@ export class DungeonScene extends Phaser.Scene {
     this.keys = this.input.keyboard!.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT,E,SPACE,ENTER', false) as Record<string, Phaser.Input.Keyboard.Key>;
 
     this.populate();
+    if (this.d.theme === 'thorn') this.placeTraps();
     this.vision = this.add.image(this.player.x, this.player.y, 'vision').setScale(0.55).setDepth(40);
     for (const [x, y, k] of this.decor) if (this.tiles[y][x] === THEME[this.d.theme].floor) this.add.image(x * 16 + 8, y * 16 + 8, k).setDepth(1).setFlipX(((x * 7 + y) % 2) === 0);
     // Fackellicht: leuchtet durch die Dunkelheit und flackert
@@ -99,6 +107,7 @@ export class DungeonScene extends Phaser.Scene {
     if (this.blut) lines.push({ who: this.d.name, text: 'Der Blutmond hat diesen Ort verändert. Es riecht nach Eisen. Hier gibt es keinen sicheren Schlaf.' });
     if (this.d.theme === 'chalk') lines.push({ who: 'Hinweis', text: 'Wo feiner Staub von der Decke rieselt, hängt etwas. Ein Pfadfinder im Trupp verhindert Hinterhalte.' });
     if (this.d.id === 'nordtor') lines.push({ who: 'Hinweis', text: 'Steinbänke. Ein Wartesaal. Die Gestalten darauf bewegen sich nur, wenn niemand hinsieht. Und jeder blinzelt irgendwann.' });
+    if (this.d.theme === 'thorn') lines.push({ who: 'Hinweis', text: G.party[0].tattoo ? 'Die Hecken rascheln, als würden sie dich erkennen. Die Fallen hier können dir nichts.' : G.party.some((m) => m.cls === 'pfadfinder') ? 'Ein Dorn-Dungeon. Alle zwanzig Schritte eine Falle. Dein Pfadfinder geht voraus und zeigt sie an (E zum Entschärfen).' : 'Ein Dorn-Dungeon. Alle zwanzig Schritte eine Falle – und du hast keinen Pfadfinder dabei. Achte auf glänzende Stellen im Gras.' });
     if (this.d.theme === 'sewer') lines.push({ who: 'Hinweis', text: 'Dunkles Wasser in den Rinnen. Bleib vom Rand weg, wenn es sich bewegt.' });
     dialog(lines);
   }
@@ -148,13 +157,14 @@ export class DungeonScene extends Phaser.Scene {
       if (rm === this.startRoom) continue;
       if (this.d.theme === 'sewer' && rm !== this.bossRoom && rm.h >= 7) for (let x = rm.x + 1; x < rm.x + rm.w - 1; x++) if (x !== rm.cx && x !== rm.cx + 1) this.tiles[rm.y + 1][x] = T.SWATER;
       if (this.d.id === 'nordtor' && rm !== this.bossRoom) for (let y = rm.y + 1; y < rm.y + rm.h - 1; y += 2) for (let x = rm.x + 1; x < rm.x + rm.w - 1; x++) if (Math.abs(x - rm.cx) > 1 && r() < 0.55) this.tiles[y][x] = T.BENCH;
-      for (let i = 0; i < 3; i++) { const x = rm.x + 1 + Math.floor(r() * (rm.w - 2)), y = rm.y + 1 + Math.floor(r() * (rm.h - 2)); if (this.tiles[y][x] === th.floor) this.tiles[y][x] = this.blut && r() < 0.6 ? T.BLOOD : T.BONES; }
+      for (let i = 0; i < 3; i++) { const x = rm.x + 1 + Math.floor(r() * (rm.w - 2)), y = rm.y + 1 + Math.floor(r() * (rm.h - 2)); if (this.tiles[y][x] === th.floor) { if (this.d.theme === 'thorn') this.decor.push([x, y, 'deco_pebbles']); else this.tiles[y][x] = this.blut && r() < 0.6 ? T.BLOOD : T.BONES; } }
     }
     // Details: Fackeln, Moos, Risse, Banner, Rohre, Pfützen, Geröll, Spinnweben
-    const chalk = this.d.theme === 'chalk', sewer = this.d.theme === 'sewer';
+    const chalk = this.d.theme === 'chalk', sewer = this.d.theme === 'sewer', thorn = this.d.theme === 'thorn';
     let lastTorch = -99;
     for (let y = 0; y < this.H; y++) for (let x = 0; x < this.W; x++) {
       const t = this.tiles[y][x];
+      if (thorn) { if (t === th.floor && r() < 0.05) this.decor.push([x, y, 'deco_pebbles']); else if (t === th.wall && r() < 0.2) this.tiles[y][x] = T.ROSEBED; continue; }
       if (t === th.wall) {
         const n = r();
         if (!chalk && x - lastTorch > 4 && n < 0.16) { this.tiles[y][x] = T.TORCH; lastTorch = x; }
@@ -207,7 +217,7 @@ export class DungeonScene extends Phaser.Scene {
       let n = 1 + (r() < 0.5 ? 1 : 0);
       if (this.blut) n = Math.round(n * 2.5);
       for (let k = 0; k < n; k++) { const [x, y] = free(rm); this.spawnMob(this.d.enemies[Math.floor(r() * this.d.enemies.length)], x, y); }
-      if (i % 3 === 1 || r() < 0.25) {
+      if (i % 3 === 1 || r() < (this.d.theme === 'thorn' ? 0.6 : 0.25)) {
         const [x, y] = free(rm);
         const spr = this.add.image(x * 16 + 8, y * 16 + 8, 'chest').setDepth(6);
         this.chests.push({ spr, opened: false, x, y });
@@ -218,9 +228,9 @@ export class DungeonScene extends Phaser.Scene {
   spawnMob(kind: string, tx: number, ty: number, boss = false): void {
     const def = kind.endsWith('_elite') ? eliteOf(kind.replace('_elite', '')) : MONSTERS[kind];
     const spr = this.physics.add.sprite(tx * 16 + 8, ty * 16 + 8, def.sprite).setDepth(9);
-    const scale = boss ? (def.id === 'kreidemutter' ? 0.6 : 1.3) : def.sprite === 'm_hohlmann' || def.sprite === 'm_sitzer' ? 0.75 : 0.8;
+    const scale = boss ? (def.id === 'kreidemutter' ? 0.6 : def.id === 'gaertnerin' ? 0.55 : 1.3) : def.sprite === 'm_hohlmann' || def.sprite === 'm_sitzer' ? 0.75 : 0.8;
     spr.setScale(scale);
-    (spr.body as Phaser.Physics.Arcade.Body).setSize(Math.min(def.id === 'kreidemutter' ? 60 : 14, spr.width), Math.min(def.id === 'kreidemutter' ? 40 : 10, spr.height));
+    (spr.body as Phaser.Physics.Arcade.Body).setSize(Math.min(def.id === 'kreidemutter' || def.id === 'gaertnerin' ? 50 : 14, spr.width), Math.min(def.id === 'kreidemutter' || def.id === 'gaertnerin' ? 40 : 10, spr.height));
     this.physics.add.collider(spr, this.layer);
     const mob: Mob = { spr, kind, boss, home: new Phaser.Math.Vector2(spr.x, spr.y), t: 0, dir: new Phaser.Math.Vector2() };
     if (kind === 'kreidekriecher') {
@@ -246,6 +256,7 @@ export class DungeonScene extends Phaser.Scene {
       if (k.W.isDown || k.UP.isDown) vy -= 1;
       if (k.S.isDown || k.DOWN.isDown) vy += 1;
     }
+    if (this.snared > 0) { this.snared -= dt; vx = 0; vy = 0; }
     const v = new Phaser.Math.Vector2(vx, vy).normalize().scale(78);
     body.setVelocity(v.x, v.y);
     if (vx || vy) {
@@ -268,6 +279,8 @@ export class DungeonScene extends Phaser.Scene {
       }
     }
     this.updateMobs(dt, blocked);
+    if (this.traps.length && !blocked) this.updateTraps(dt);
+    if (this.princess && !this.princessMet && !blocked && Phaser.Math.Distance.Between(this.princess.x, this.princess.y, this.player.x, this.player.y) < 30) this.meetPrincess();
   }
 
   passTime(days: number): void {
@@ -392,6 +405,112 @@ export class DungeonScene extends Phaser.Scene {
     toast('Der Dungeon ist besiegt. In der Mitte des Raums öffnet sich der Ausgang.', 'big', 4500);
     const g = this.add.image(br.cx * 16 + 8, br.cy * 16 + 8, 'glow').setScale(2).setDepth(7).setTint(0xfff0c0).setAlpha(0.7);
     this.tweens.add({ targets: g, alpha: 0.3, yoyo: true, repeat: -1, duration: 700 });
+    if (this.d.theme === 'thorn') this.spawnPrincess();
+  }
+
+  // ------------------------------------------------------------ Dornenfallen
+  placeTraps(): void {
+    const r = mulberry32(this.d.seed * 7 + 3);
+    const sr = this.startRoom;
+    for (let y = 1; y < this.H - 1; y++) for (let x = 1; x < this.W - 1; x++) {
+      if (this.tiles[y][x] !== T.GARDEN) continue;
+      if (x >= sr.x - 1 && x <= sr.x + sr.w && y >= sr.y - 1 && y <= sr.y + sr.h) continue;
+      // „Alle 20 Schritte eine tödliche Falle“
+      if (r() > 0.04) continue;
+      const hint = this.add.image(x * 16 + 8, y * 16 + 8, 'trap_hint').setDepth(2).setAlpha(0.7);
+      this.tweens.add({ targets: hint, alpha: 0.15, yoyo: true, repeat: -1, duration: 900 + r() * 900 });
+      this.traps.push({ x, y, armed: true, seen: false, spr: hint, kind: (['stacheln', 'ranken', 'pfeile'] as const)[Math.floor(r() * 3)] });
+    }
+  }
+
+  updateTraps(dt: number): void {
+    this.trapCd -= dt;
+    const pf = G.party.some((m) => m.cls === 'pfadfinder' && m.hp > 0);
+    const immune = G.party[0].tattoo;
+    const px = Math.floor(this.player.x / 16), py = Math.floor((this.player.y + 8) / 16);
+    for (const t of this.traps) {
+      if (!t.armed) continue;
+      const dist = Math.max(Math.abs(t.x - px), Math.abs(t.y - py));
+      if (pf && !t.seen && dist <= 3) { t.seen = true; t.spr.setTexture('trap_seen').setAlpha(1); this.tweens.killTweensOf(t.spr); toast('Pfadfinder: „Falle! Nicht drauftreten – oder E zum Entschärfen.“'); }
+      if (dist === 0 && this.trapCd <= 0) {
+        if (immune) { if (!t.seen) { t.seen = true; t.spr.setTexture('trap_seen').setAlpha(1); this.tweens.killTweensOf(t.spr); toast('Die Dornen weichen vor deinem Tattoo zurück.'); } continue; }
+        this.springTrap(t);
+      }
+    }
+  }
+
+  springTrap(t: Trap): void {
+    t.armed = false; this.trapCd = 900;
+    this.tweens.killTweensOf(t.spr);
+    t.spr.setTexture('trap_sprung').setAlpha(1);
+    SFX.hurt(); this.cameras.main.shake(180, 0.01); this.cameras.main.flash(120, 120, 20, 20);
+    const frac = t.kind === 'stacheln' ? 0.18 : t.kind === 'pfeile' ? 0.12 : 0.06;
+    for (const m of G.party) { if (m.hp <= 0) continue; m.hp = Math.max(1, m.hp - Math.round(stats(m).hp * frac)); }
+    const text = t.kind === 'stacheln' ? 'Dornenspieße schießen aus dem Boden!' : t.kind === 'pfeile' ? 'Dornpfeile aus der Hecke!' : 'Ranken schnüren euch die Beine zu.';
+    toast(text, 'bad', 2200);
+    if (t.kind === 'ranken') { this.snared = 1600; this.passTime(0.1); }
+    updateHud();
+    // Rankenweber flicken ausgelöste Fallen
+    if (this.mobs.some((m) => m.kind === 'rankenweber')) this.time.delayedCall(25000, () => { if (!this.scene.isActive() || !this.mobs.some((m) => m.kind === 'rankenweber')) return; t.armed = true; t.seen = false; t.spr.setTexture('trap_hint').setAlpha(0.5); this.tweens.add({ targets: t.spr, alpha: 0.15, yoyo: true, repeat: -1, duration: 1100 }); });
+  }
+
+  disarmNear(): boolean {
+    const [fx, fy] = this.facingTile();
+    const t = this.traps.find((tr) => tr.armed && tr.seen && ((tr.x === fx && tr.y === fy) || Math.max(Math.abs(tr.x - Math.floor(this.player.x / 16)), Math.abs(tr.y - Math.floor((this.player.y + 8) / 16))) <= 1));
+    if (!t) return false;
+    t.armed = false; this.tweens.killTweensOf(t.spr); t.spr.setTexture('trap_sprung').setAlpha(0.5);
+    SFX.ui(); toast('Falle entschärft.');
+    return true;
+  }
+
+  // ------------------------------------------------------------ Prinzessin der Dornen
+  spawnPrincess(): void {
+    ensureChar(this, 'princess', { gender: 'w', race: 'mensch', beast: 'wolf', skin: '#f3dcd0', hair: '#141018', hairStyle: 'lang', eyes: '#c0303a', beard: 'keiner', build: 'schmal', outfit: 'robe', cloth: '#8a1a26', cloth2: '#2c4a2a', tattoo: true });
+    const br = this.bossRoom;
+    this.princess = this.add.sprite(br.cx * 16 + 8, (br.cy - 2) * 16 + 8, 'princess', 0).setDepth(9).setAlpha(0);
+    this.tweens.add({ targets: this.princess, alpha: 1, duration: 1400 });
+    const petals = this.add.particles(this.princess.x, this.princess.y, 'px', { speed: { min: 6, max: 20 }, lifespan: 1600, frequency: 160, scale: 0.5, tint: [0xc0303a, 0xe8505a], alpha: { start: 0.9, end: 0 } }).setDepth(8);
+    void petals;
+  }
+
+  meetPrincess(): void {
+    this.princessMet = true;
+    const p = G.party[0];
+    const lines = [
+      { who: '???', text: 'Ein Mädchen in einem roten Kleid steht zwischen den welkenden Ranken. Um ihren Hals ein Muster aus Dornen, dasselbe wie an den Hecken.' },
+      { who: 'Prinzessin der Dornen', text: '„Du hast meine Gärtnerin geschnitten. Unhöflich. Aber mutig.“ Sie lächelt. „Diese Gärten wachsen für die Armeen meiner Mutter. Und du bist trotzdem hier.“' },
+    ];
+    if (p.tattoo) {
+      dialog([...lines, { who: 'Prinzessin der Dornen', text: '„Du trägst mein Zeichen schon. Dann komm einmal zum Tee, wenn die Frist vorbei ist.“ Sie zerfällt zu Rosenblättern.' }], () => this.princessLeaves());
+      return;
+    }
+    dialog([...lines,
+      { who: 'Prinzessin der Dornen', text: `„Ich biete dir mein Zeichen an. Es hebt dein Mana um eine Stufe, die Fallen meiner Gärten erkennen dich, und es öffnet dir die Tür zu meiner Mutter.“` },
+      { who: 'Prinzessin der Dornen', text: '„Aber es hat eine eigene Manasignatur. Die Kirche, die Gilden und die Könige werden dich jagen. Willst du es trotzdem?“', opts: [
+        { label: 'Das Dornen-Tattoo annehmen', fn: () => this.takeTattoo() },
+        { label: 'Ablehnen', fn: () => dialog([{ who: 'Prinzessin der Dornen', text: '„Schade. Ein andermal vielleicht. Bei Tee.“ Sie zerfällt zu Rosenblättern.' }], () => this.princessLeaves()) },
+      ] },
+    ]);
+  }
+
+  takeTattoo(): void {
+    const p = G.party[0];
+    p.tattoo = true; p.app = { ...p.app, tattoo: true };
+    fullHeal(p);
+    ensureChar(this, 'player', p.app, true);
+    this.player.setTexture('player', 0);
+    G.flags.tattooDay = Math.floor(G.day);
+    log('Das Dornen-Tattoo angenommen.');
+    SFX.fee(); this.cameras.main.flash(500, 160, 20, 40);
+    dialog([{ who: 'Prinzessin der Dornen', text: '„Es wird ein bisschen brennen.“ Es brennt sehr. Dann ist da ein Muster aus Dornen auf deiner Haut – und ein neuer Fluss in deinem Mana.' }], () => {
+      toast('Dornen-Tattoo: Mana-Rang +1, immun gegen Dornenfallen. Die Kirche wird dich jagen.', 'big', 6000);
+      this.princessLeaves();
+    });
+  }
+
+  princessLeaves(): void {
+    if (!this.princess) return;
+    this.tweens.add({ targets: this.princess, alpha: 0, duration: 1200, onComplete: () => this.princess?.destroy() });
   }
 
   facingTile(): [number, number] {
@@ -401,6 +520,7 @@ export class DungeonScene extends Phaser.Scene {
   }
 
   interact(): void {
+    if (this.traps.length && this.disarmNear()) return;
     for (const c of this.chests) {
       if (c.opened) continue;
       if (Phaser.Math.Distance.Between(c.spr.x, c.spr.y, this.player.x, this.player.y + 6) < 20) { this.openChest(c); return; }

@@ -78,7 +78,7 @@ export function stats(m: Member): Stats {
 /** Zweiter Fluss: bei Halbwesen ist mp der starke (Eltern-)Fluss und mp2 der menschliche C-Fluss. */
 export function maxMp2(m: Member): number {
   if (!isHalf(m)) return 0;
-  return Math.round(8 + m.level * 1.6);
+  return Math.round((8 + m.level * 1.6) * (m.tattoo ? 1.8 : 1));
 }
 
 export function fullHeal(m: Member): void {
@@ -86,7 +86,17 @@ export function fullHeal(m: Member): void {
   m.hp = s.hp; m.mp = s.mp; m.mp2 = maxMp2(m);
 }
 
-export function manaRank(m: Member): Rank { return RACES[m.app.race].mana; }
+const RANK_UP: Record<Rank, Rank> = { D: 'C', C: 'B', B: 'A', A: 'S', S: 'SS', SS: 'SS' };
+/** Mana-Rang. Das Dornen-Tattoo hebt ihn um eine Stufe – bei Halbwesen nur den schwächeren Fluss. */
+export function manaRank(m: Member): Rank {
+  const r = RACES[m.app.race].mana;
+  return m.tattoo && !isHalf(m) ? RANK_UP[r] : r;
+}
+export function manaRank2(m: Member): Rank | null {
+  const r = RACES[m.app.race].mana2;
+  if (!r) return null;
+  return m.tattoo ? RANK_UP[r] : r;
+}
 
 export function maxElements(m: Member): number {
   return Math.min(RANK_ELEMENTS[manaRank(m)], levelElementCap(m.level));
@@ -125,7 +135,7 @@ export function money(silver: number): string {
 
 export function priceFor(base: number, sellerHuman = true): number {
   const p = G.party[0];
-  const mk = sellerHuman ? RACES[p.app.race].markup : 0;
+  const mk = sellerHuman ? RACES[p.app.race].markup + (p.tattoo ? 0.25 : 0) : 0;
   return Math.round(base * (1 + mk));
 }
 

@@ -112,6 +112,11 @@ export function buildWorld(): WorldMap {
   for (let y = 2; y <= 8; y++) { set(24, y, y % 4 ? T.RUIN : T.GRASS2); set(36, y, T.RUIN); }
   set(30, 4, T.ENTRANCE); set(29, 4, T.RUIN); set(31, 4, T.RUIN); set(30, 3, T.RUIN); set(29, 3, T.RUIN); set(31, 3, T.RUIN);
   labels.push({ x: 30, y: 1.6, text: 'Nordtor-Turm' });
+  // Der Dornhag: Dorn-Dungeon im Wald nordöstlich
+  for (let y = 6; y <= 14; y++) for (let x = 54; x <= 62; x++) set(x, y, Math.hypot(x - 58, y - 10) < 3.2 ? T.GARDEN : r() < 0.55 ? T.HEDGE : T.ROSEBED);
+  for (let y = 10; y <= 30; y++) { set(58, y, T.PATH); set(59, y, T.PATH); }
+  set(58, 10, T.THORN_GATE); set(59, 10, T.GARDEN); set(57, 10, T.HEDGE); set(58, 9, T.HEDGE);
+  labels.push({ x: 58, y: 7.4, text: 'Der Dornhag' });
   // Straße nach Osten ins Moor
   for (let x = town.x1; x < MW - 4; x++) { const yy = 31 + Math.round(Math.sin(x / 7) * 2); set(x, yy, T.PATH); set(x, yy + 1, T.PATH); if (get(x, yy - 1) === T.BOG) set(x, yy - 1, T.REED); if (get(x, yy + 2) === T.BOG) set(x, yy + 2, T.REED); }
   set(MW - 4, 30, T.SIGN); signs.set(`${MW - 4},30`, 'Nach Eschenwacht. Die Grenze ist wegen der Elfenjagd gesperrt. (Weitere Reiche folgen.)');

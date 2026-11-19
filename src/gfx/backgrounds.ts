@@ -81,6 +81,14 @@ const BG: Record<string, (c: Ctx) => void> = {
     for (let y = 118; y < 180; y += 14) R(c, 0, y, 320, 1, '#2d2f3b');
     for (let x = 0; x < 320; x += 28) R(c, x, 112, 1, 68, '#2d2f3b');
   },
+  thorn: (c) => {
+    bands(c, ['#0c1a14', '#10241a', '#163020', '#1c3a26', '#224430'], 0, 104);
+    moonAt(c, 40, 16, '#e8d8d8');
+    // Heckenwand mit Rosen
+    for (let x = -10; x < 330; x += 34) sprite(c, 40, 70, (p) => { p.ellipse(20, 36, 18, 32, '#2c4a2a'); p.rect(2, 36, 36, 34, '#2c4a2a'); for (const [rx, ry] of [[10, 20], [26, 30], [16, 46], [30, 54], [8, 58]]) { p.rect(rx, ry, 3, 3, '#c0303a'); p.set(rx, ry, '#e8505a'); } for (const [tx, ty] of [[6, 30], [33, 22], [20, 12], [12, 40]]) p.set(tx, ty, '#c8b890'); }, x, 36 + ((x / 34) % 2) * 6);
+    // Torbogen in der Mitte
+    sprite(c, 60, 70, (p) => { p.ellipse(30, 30, 28, 28, '#1e3420'); p.rect(2, 30, 56, 40, '#1e3420'); p.ellipse(30, 34, 18, 20, '#0a120c'); p.rect(12, 34, 36, 36, '#0a120c'); }, 130, 36);
+  },
   tower: (c) => {
     bricks(c, 0, 0, 320, 110, '#24262f', '#15171d', '#2e313c');
     for (let y = 0; y < 60; y += 4) { R(c, 238, y, 3, 3, '#d8d0bc'); R(c, 238, y, 3, 1, '#f0ead8'); }
@@ -98,6 +106,7 @@ const FLOOR: Record<string, { base: string; alt: string; line: string; lip: stri
   sewer: { base: '#4a544c', alt: '#434d45', line: '#2c332d', lip: '#161c18', light: '#66726a' },
   chalk: { base: '#c8c0ae', alt: '#bdb5a2', line: '#9a927e', lip: '#6a6458', light: '#e2dccc' },
   stone: { base: '#4e5262', alt: '#474b5a', line: '#2d2f3b', lip: '#16171f', light: '#6a6e82' },
+  thorn: { base: '#4a5e3a', alt: '#435636', line: '#2c3c24', lip: '#16200f', light: '#62784a', edge: '#c0303a' },
   tower: { base: '#3e4252', alt: '#383c4b', line: '#23252f', lip: '#101118', light: '#585c70' },
 };
 function floor(c: Ctx, kind: string): void {

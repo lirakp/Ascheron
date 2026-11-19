@@ -37,6 +37,8 @@ interface Fighter {
   parent?: Fighter;
   parts: Fighter[];
   herz: number;
+  eyes?: number;
+  dealt?: number;
   barG?: Phaser.GameObjects.Graphics;
   label?: Phaser.GameObjects.Text;
   scale: number;
@@ -48,9 +50,9 @@ interface HitInfo { precise?: boolean; licht?: boolean; tech?: string; }
 const STATUS_NAME: Record<string, string> = {
   brand: 'Brand', langsam: 'Verlangsamt', betaeubt: 'Betäubt', steinhaut: 'Steinhaut', schleier: 'Schleier', stille: 'Stille',
   dornenwall: 'Dornenwall', kreide: 'Verkreidet', muede: 'Müde', ertrinken: 'Ertrinkt', blutung: 'Blutung', ohnmacht: 'Ohnmacht',
-  verkrustet: 'Verkrustet', wehrlos: 'Wehrlos', schildwall: 'Schildwall', taunt: 'Provoziert',
+  verkrustet: 'Verkrustet', wehrlos: 'Wehrlos', kokon: 'Eingesponnen', dornenkaefig: 'Dornenkäfig', offen: 'Käfig offen', schildwall: 'Schildwall', taunt: 'Provoziert',
 };
-const BAD = ['brand', 'langsam', 'betaeubt', 'kreide', 'muede', 'ertrinken', 'blutung', 'ohnmacht'];
+const BAD = ['brand', 'langsam', 'betaeubt', 'kreide', 'muede', 'ertrinken', 'blutung', 'ohnmacht', 'kokon'];
 
 export class BattleScene extends Phaser.Scene {
   data_!: BattleData;
@@ -108,7 +110,7 @@ export class BattleScene extends Phaser.Scene {
     let slot = 0;
     for (const id of this.data_.enemies) {
       const def = id.endsWith('_elite') ? eliteOf(id.replace('_elite', '')) : MONSTERS[id];
-      const isBig = def.boss && (def.id === 'kreidemutter' || def.id === 'gloeckner');
+      const isBig = def.boss && (def.id === 'kreidemutter' || def.id === 'gloeckner' || def.id === 'gaertnerin');
       const [x, y] = isBig ? [730, 450] : eslots[slot++ % eslots.length];
       const sc = (def.scale ?? 1) * (isBig ? 3.2 : def.sprite === 'm_aschhund' || def.sprite === 'm_kanalwuerger' || def.sprite === 'm_kreidekriecher' ? 3.2 : 3.4);
       const spr = this.add.image(x, y, def.sprite).setScale(def.id === 'gloeckner' ? 2.6 : sc).setOrigin(0.5, 1).setDepth(y / 10);
@@ -122,6 +124,17 @@ export class BattleScene extends Phaser.Scene {
         this.tweens.add({ targets: fs, scale: 2.8, yoyo: true, repeat: -1, duration: 420 });
         const p = this.addFighter({ side: 'e', name: fl.name, mdef: fl, hp: fl.hp, maxHp: fl.hp, atk: 0, def: fl.def, mag: 0, spd: 0, spr: fs, hx: fs.x, hy: fs.y, scale: 2.4 });
         p.parent = f; f.parts.push(p);
+      }
+      if (def.eyes) f.eyes = def.eyes;
+      if (def.id === 'gaertnerin') {
+        const hd = MONSTERS.gaertnerin_herz;
+        spr.setScale(2.6);
+        const hs = this.add.image(x, y - spr.displayHeight * 0.56, hd.sprite).setScale(2.4).setDepth(60);
+        this.tweens.add({ targets: hs, scale: 2.7, yoyo: true, repeat: -1, duration: 520 });
+        const p = this.addFighter({ side: 'e', name: hd.name, mdef: hd, hp: hd.hp, maxHp: hd.hp, atk: 0, def: hd.def, mag: 0, spd: 0, spr: hs, hx: hs.x, hy: hs.y, scale: 2.4 });
+        p.parent = f; f.parts.push(p);
+        if (G.party.some((m) => m.tattoo)) this.time.delayedCall(1200, () => this.say('Dein Dornen-Tattoo brennt. Der Käfig um die Rose öffnet sich für dich.', '#ff9aa0'));
+        else p.st.dornenkaefig = 99;
       }
       if (def.id === 'gloeckner') {
         const kd = MONSTERS.gloeckner_kloeppel;
@@ -225,7 +238,7 @@ export class BattleScene extends Phaser.Scene {
       f.barG.fillStyle(f.st.verkrustet ? 0xd8d2c4 : 0xd8483c, 1).fillRect(x, y, fw, 6);
       f.barG.fillStyle(0xffffff, 0.25).fillRect(x, y, fw, 1);
       const sts = Object.keys(f.st).filter((k) => f.st[k] > 0).map((k) => STATUS_NAME[k] ?? k);
-      f.label?.setPosition(f.spr.x, y - 10).setText(f.name + (sts.length ? ' · ' + sts.join(', ') : ''));
+      f.label?.setPosition(f.spr.x, y - 10).setText(f.name + (f.eyes ? ` · Augen ${f.eyes}` : '') + (sts.length ? ' · ' + sts.join(', ') : ''));
     }
   }
 
@@ -315,6 +328,7 @@ export class BattleScene extends Phaser.Scene {
     };
     dot('brand', 0.06, 'Brand'); dot('blutung', 0.05, 'Blut'); dot('ertrinken', 0.09, 'Wasser');
     if (!f.alive) { await this.wait(500); return true; }
+    if (f.st.kokon) { this.say(`${f.name} ist eingesponnen und kämpft sich frei…`, '#a8987c'); delete f.st.kokon; await this.wait(900); return true; }
     if (f.st.ohnmacht) { this.say(`${f.name} ist ohnmächtig.`); await this.wait(800); return true; }
     if (f.st.betaeubt) { this.say(`${f.name} ist betäubt!`); f.st.betaeubt = 0; await this.wait(800); return true; }
     if (f.st.muede && Math.random() < 0.35) { this.say(`${f.name} nickt ein…`, '#a8987c'); await this.wait(900); return true; }
@@ -322,7 +336,13 @@ export class BattleScene extends Phaser.Scene {
   }
 
   tickStatuses(f: Fighter): void {
-    for (const k of Object.keys(f.st)) { if (k === 'wehrlos') continue; if (f.st[k] > 0) f.st[k]--; if (f.st[k] <= 0) delete f.st[k]; }
+    for (const k of Object.keys(f.st)) {
+      if (k === 'wehrlos' || k === 'dornenkaefig') continue;
+      if (f.st[k] > 0) f.st[k]--;
+      if (f.st[k] <= 0) { delete f.st[k]; if (k === 'offen' && f.alive) { f.st.dornenkaefig = 99; this.float(f, 'Der Käfig schließt sich', '#9ac080'); } }
+    }
+    // Boss-Teile sind nie selbst am Zug: ihre Zustände laufen mit dem Zug des Bosses ab
+    for (const part of f.parts) if (part.alive) this.tickStatuses(part);
   }
 
   checkEnd(): boolean {
@@ -579,8 +599,15 @@ export class BattleScene extends Phaser.Scene {
   damage(t: Fighter, raw: number, info: HitInfo, note?: string): void {
     if (!t.alive) return;
     if (t.st.verkrustet) { this.float(t, 'Verkrustet – kein Schaden', '#d8d2c4'); return; }
+    if (t.st.dornenkaefig) { this.float(t, 'Der Dornenkäfig schützt die Rose', '#9ac080'); return; }
     const d = roll(raw, Math.random, !!t.st.wehrlos);
     t.hp -= d;
+    if (this.current && this.current.side === 'p' && t.side === 'e') this.current.dealt = (this.current.dealt ?? 0) + d;
+    if (t.eyes && t.eyes > 0) {
+      t.eyes--;
+      this.float(t, t.eyes ? `Rosenauge getroffen (${t.eyes} übrig)` : 'Alle Rosenaugen geschlossen!', '#ff8a9a');
+      if (t.hp <= 0 && t.eyes > 0) { t.hp = 1; this.say('Die Rosenaugen bluten weiter – er stirbt erst, wenn alle getroffen sind!', '#ff8a9a'); }
+    }
     this.float(t, `${d}`, info.precise ? '#ffe08a' : '#ffffff', info.precise);
     if (note) this.float(t, note, note === 'widersteht' ? '#a8a8a8' : '#ffb04a');
     this.tweens.add({ targets: t.spr, x: t.spr.x + (t.side === 'e' ? 10 : -10), yoyo: true, duration: 70, repeat: 1 });
@@ -618,6 +645,7 @@ export class BattleScene extends Phaser.Scene {
     t.barG?.clear(); t.label?.setVisible(false);
     if (t.parent) {
       const p = t.parent;
+      if (p.mdef!.id === 'gaertnerin' && p.alive) { this.say('Die rote Rose zerfällt. Die Gärtnerin welkt in Sekunden.', '#ffe08a'); this.time.delayedCall(400, () => this.kill(p, { precise: true })); }
       if (p.mdef!.id === 'kreidemutter' && p.alive) { this.say('Die Flanke reißt! Die Kreidemutter bricht in sich zusammen!', '#ffe08a'); this.time.delayedCall(400, () => this.kill(p, { precise: true })); }
       if (p.mdef!.id === 'gloeckner' && p.alive) { p.st.wehrlos = 99; p.def = 0; p.atk = Math.round(p.atk * 0.5); this.say('Ohne Klöppel ist der Glöckner wehrlos!', '#ffe08a'); }
     }
@@ -666,11 +694,13 @@ export class BattleScene extends Phaser.Scene {
     const silenced = !!f.st.stille;
     const kloeppel = f.parts.find((p) => p.mdef?.id === 'gloeckner_kloeppel');
     const flank = f.parts.find((p) => p.mdef?.id === 'kreidemutter_flanke');
+    const rose = f.parts.find((p) => p.mdef?.id === 'gaertnerin_herz');
     let pool = def.attacks.filter((a) => {
       if (a.special && silenced) return false;
       if (a.special === 'laeuten' && (!kloeppel?.alive || f.st.wehrlos)) return false;
       if (a.special === 'beschwoeren' && this.enemiesAlive().filter((e) => !e.parent).length >= 4) return false;
       if (a.special === 'verhaerten' && (!flank?.alive || flank.st.verkrustet)) return false;
+      if (a.special === 'bluehen' && (!rose?.alive || !rose.st.dornenkaefig)) return false;
       return true;
     });
     if (!pool.length) pool = def.attacks.filter((a) => !a.special);
@@ -685,9 +715,17 @@ export class BattleScene extends Phaser.Scene {
     if (atk.special === 'beschwoeren') return this.summon(f);
     if (atk.special === 'verhaerten') { flank!.st.verkrustet = 2; this.float(flank!, 'Verkrustet', '#d8d2c4'); this.renderParty(); await this.wait(700); return; }
     if (atk.special === 'laeuten') return this.bellQte(f);
+    if (atk.special === 'bluehen') { delete rose!.st.dornenkaefig; rose!.st.offen = 2; this.float(rose!, 'Käfig offen!', '#ffe08a'); this.renderParty(); await this.wait(700); return; }
 
     const taunt = this.partyAlive().find((p) => p.st.taunt);
-    const targets = atk.target === 'all' ? this.partyAlive() : [taunt ?? Phaser.Utils.Array.GetRandom(this.partyAlive())];
+    let pick = taunt ?? Phaser.Utils.Array.GetRandom(this.partyAlive());
+    if (atk.special === 'zurueckschneiden') {
+      // „Was aus der Reihe wächst, wird geschnitten“: wer am meisten Schaden gemacht hat
+      pick = [...this.partyAlive()].sort((a, b) => (b.dealt ?? 0) - (a.dealt ?? 0))[0];
+      this.time.delayedCall(300, () => this.say(`Sie schneidet ${pick.name} zurück!`, '#ff9a90'));
+      for (const p of this.F) p.dealt = 0;
+    }
+    const targets = atk.target === 'all' ? this.partyAlive() : [pick];
     if (!targets.length) return;
     const main = targets[0];
     const fx = atk.target === 'all' ? 230 : main.spr.x, fy = atk.target === 'all' ? 360 : this.cy(main);

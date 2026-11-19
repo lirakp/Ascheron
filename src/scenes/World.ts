@@ -107,6 +107,7 @@ export class WorldScene extends Phaser.Scene {
     const t = this.wm.town;
     if (x >= t.x0 && x <= t.x1 && y >= t.y0 && y <= t.y1) return 'Krähenfurt';
     if (y < 10 && x > 22 && x < 38) return 'Nordtor-Ruinen';
+    if (Math.hypot(x - 58, y - 10) < 6) return 'Der Dornhag';
     if (Math.hypot((x - 84) / 15, (y - 57) / 11) < 1) return 'Weißer Hang';
     if (x > 46) return 'Moore von Rabenmark';
     if (x < 12) return 'Küste';
@@ -166,6 +167,8 @@ export class WorldScene extends Phaser.Scene {
     for (let i = 0; i < n; i++) this.spawnRoamer('aschhund');
     if (G.blutmond > 0) for (let i = 0; i < 4; i++) this.spawnRoamer('blutgaenger');
     if (broken) for (let i = 0; i < broken * 2; i++) this.spawnRoamer('hohlmann');
+    // Inquisitoren jagen Träger des Dornen-Tattoos
+    if (G.party[0].tattoo) for (let i = 0; i < 2; i++) this.spawnRoamer('inquisitor');
   }
 
   spawnRoamer(kind: string): void {
@@ -279,7 +282,7 @@ export class WorldScene extends Phaser.Scene {
       if (!r.spr.active) continue;
       if (blocked) { b.setVelocity(0); continue; }
       const d = Phaser.Math.Distance.Between(r.spr.x, r.spr.y, this.player.x, this.player.y + 6);
-      const fast = r.kind === 'aschhund' ? 64 : r.kind === 'blutgaenger' ? 50 : 30;
+      const fast = r.kind === 'aschhund' ? 64 : r.kind === 'blutgaenger' || r.kind === 'inquisitor' ? 50 : 30;
       if (d < 100) {
         const dir = new Phaser.Math.Vector2(this.player.x - r.spr.x, this.player.y - r.spr.y).normalize();
         b.setVelocity(dir.x * fast, dir.y * fast);
@@ -301,6 +304,7 @@ export class WorldScene extends Phaser.Scene {
     const enemies: string[] = [];
     if (r.kind === 'aschhund') { const n = G.party.length >= 2 || G.party[0].level >= 3 ? 2 + (Math.random() < 0.4 ? 1 : 0) : 1 + (Math.random() < 0.5 ? 1 : 0); for (let i = 0; i < n; i++) enemies.push('aschhund'); }
     else if (r.kind === 'blutgaenger') { enemies.push('blutgaenger'); if (Math.random() < 0.5) enemies.push('blutgaenger'); }
+    else if (r.kind === 'inquisitor') { enemies.push('inquisitor'); if (Math.random() < 0.4) enemies.push('inquisitor'); }
     else { enemies.push(r.kind); if (Math.random() < 0.4) enemies.push('aschhund'); }
     this.cameras.main.flash(250, 255, 255, 255);
     this.cameras.main.zoomTo(4.2, 350);
@@ -360,7 +364,7 @@ export class WorldScene extends Phaser.Scene {
     if (sign) { dialog([{ who: 'Schild', text: sign }]); return; }
     if (tile === T.WELL) { dialog([{ who: 'Brunnen', text: 'Das Wasser riecht nach Kanal. Unten glänzt etwas – eine eiserne Plakette? Zu tief.' }]); return; }
     if (tile === T.STALL) { dialog([{ who: 'Marktstand', text: 'Rüben, Moorkraut, geräucherter Aal. Der Händler starrt auf das Gitter vor seinem Stand.' }]); return; }
-    if (tile === T.ENTRANCE || tile === T.GRATE) {
+    if (tile === T.ENTRANCE || tile === T.GRATE || tile === T.THORN_GATE) {
       const d = Object.values(G.dungeons).find((x) => x.x === tx && x.y === ty);
       if (d) this.askDungeon(d.id);
     }

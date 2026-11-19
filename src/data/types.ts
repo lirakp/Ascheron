@@ -22,6 +22,7 @@ export interface Appearance {
   outfit: Outfit;
   cloth: string;
   cloth2: string;
+  tattoo?: boolean;
 }
 
 export interface Stats { hp: number; mp: number; atk: number; def: number; mag: number; spd: number; }
@@ -40,6 +41,7 @@ export interface Member {
   elements: El[];
   isPlayer?: boolean;
   hireCost?: number;
+  tattoo?: boolean;
 }
 
 export interface ItemInst {
@@ -62,10 +64,10 @@ export interface QuestState { status: 'offen' | 'angenommen' | 'erfuellt' | 'abg
 export interface DungeonState {
   id: string;
   name: string;
-  theme: 'sewer' | 'chalk' | 'stone' | 'moor';
+  theme: 'sewer' | 'chalk' | 'stone' | 'moor' | 'thorn';
   rank: Rank;
   shownRank: string;
-  type: 'Physisch' | 'Blut';
+  type: 'Physisch' | 'Blut' | 'Dorn';
   enemies: string[];
   boss: string;
   rooms: number;

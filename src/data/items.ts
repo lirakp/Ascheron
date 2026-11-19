@@ -32,6 +32,8 @@ export const ITEMS: Record<string, ItemDef> = {
   glockenbronze: { id: 'glockenbronze', name: 'Glockenbronze', kind: 'material', price: 160, desc: 'Ein Stück der Glocke des Glöckners. Summt leise.' },
   opfermuenzen: { id: 'opfermuenzen', name: 'Gehortete Münzen', kind: 'material', price: 140, desc: 'Münzen der Opfer der Kreidemutter. Das Konsortium wechselt sie (2 % Gebühr).' },
   altbrot: { id: 'altbrot', name: 'Altes Brot', kind: 'material', price: 1, desc: 'Riecht nach Sitzer.' },
+  dornenseide: { id: 'dornenseide', name: 'Dornenseide', kind: 'material', price: 35, desc: 'Reißfest und blutig. Schneider zahlen gut.' },
+  herzrose: { id: 'herzrose', name: 'Rote Herzrose', kind: 'material', price: 900, desc: 'Das Herz der Gärtnerin. Sie verwelkt nicht.' },
   plakette: { id: 'plakette', name: 'Kalte Seelenplakette', kind: 'key', price: 0, desc: 'Die Plakette eines toten Abenteurers. Die Gilde zahlt für die Rückgabe.' },
 };
 

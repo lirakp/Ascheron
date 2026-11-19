@@ -27,15 +27,22 @@ npm run build      # erzeugt dist/ und dist/ascheron.html (eine einzige, eigenst
 - **Bestiarium als Mechanik:** Hohlmänner stehen wieder auf, bis ein präziser Treffer oder Licht den Kopf abtrennt. Kreidekriecher lauern an der Decke und verraten sich durch rieselnden Staub. Sitzer bewegen sich nur, wenn du nicht hinsiehst oder blinzelst. Bei der Kreidemutter zielst du auf die pochende Flanke. Der Glöckner läutet für alle, die stillstehen, und wird ohne seinen Klöppel wehrlos. Aschhunde vergessen nie, vor ihnen gibt es keine Flucht. Blutgänger erscheinen nur beim Blutmond.
 - **Fraktionen & Wirtschaft:** Silber, Gold und Platin mit 2 % Wechselgebühr. Die Gilde erhebt 10 % Blutsteuer, *definiert* schlafende Beute und nimmt Seelenplaketten und Rangprüfungen ab. Die Kirche heilt, löst Flüche, verleiht Licht-Bücher und vermietet Kleriker. Die Rostige Münze verkauft verfluchte A-Ware mit Tribut. Ab Rang A fordert Ausrüstung Tribut (Blut oder Mana).
 - **Die Fee der zeitlosen Wünsche:** Statt Game Over gibt es eine Wiederbelebung gegen eine Erinnerung. Du vergisst dann zum Beispiel ein Element, Gefährten vergessen dich, oder die Gilde vergisst deine Taten.
+- **Dorn-Dungeons:** Der Dornhag nordöstlich der Stadt (Rang B) und zufällige Dorn-Dungeons.
+  - Etwa auf jedem 25. Feld liegt eine Falle: Stacheln, Pfeile oder Ranken. Ein Pfadfinder deckt sie auf und entschärft sie.
+  - Rankenweber flicken ausgelöste Fallen wieder und sterben erst, wenn alle ihre Rosenaugen getroffen sind.
+  - Boss ist die Gärtnerin. „Zurückschneiden“ trifft immer die Figur, die zuletzt den meisten Schaden gemacht hat. Ihre Herzrose liegt im Dornenkäfig, der sich nur öffnet, wenn sie blüht.
+- **Dornen-Tattoo:** Die Prinzessin der Dornen bietet es nach dem Sieg an.
+  - Es hebt den Mana-Rang um eine Stufe, bei Halbwesen nur den schwächeren Fluss, und macht immun gegen Dornenfallen.
+  - Dafür jagen Inquisitoren den Träger. Händler verlangen mehr, und die Kirche vermietet keine Kleriker mehr.
+- **Balancing:** Die Kampfformeln liegen in `src/core/combat.ts`. `npm run balance` simuliert Kern- und Bosskämpfe sowie ganze Dungeon-Durchläufe für Anfänger, durchschnittliche und geübte Spieler.
 - **Rabenmark:** Krähenfurt mit sieben Gebäuden, Küste, Moore, Weißer Hang und Nordtor-Ruinen. Dazu Tag und Nacht, Kräuter, Gerüchte, Chronik und die Frist der Verlorenen Königin bis 139 n. S.
 
 ## Nächste Ausbaustufen
 
-1. Dorn-Dungeons (Fallen alle 20 Schritte, Rankenweber, Gärtnerin) und Dornen-Tattoo
-2. Erinnerungs-Dungeons (getarnt als D/C, Schleifen aktiv/inaktiv, Störenfried-Bruch, Nachhall)
-3. Entitäten als Weltereignisse: Feldschmiede des Königs der Stärke, Wolf der Sünden, Sündenklingen
-4. Weitere Reiche: Kaldrion, Aurelsfeste, Veyrath, Eschenwacht, Erstarrte Lande (Zeitmotten)
-5. Touch-Steuerung, Musik, mehr Gefährten
+1. Erinnerungs-Dungeons (getarnt als D/C, Schleifen aktiv/inaktiv, Störenfried-Bruch, Nachhall)
+2. Entitäten als Weltereignisse: Feldschmiede des Königs der Stärke, Wolf der Sünden, Sündenklingen
+3. Weitere Reiche: Kaldrion, Aurelsfeste, Veyrath, Eschenwacht, Erstarrte Lande (Zeitmotten)
+4. Touch-Steuerung, Musik, mehr Gefährten
 
 ## Aufbau
 

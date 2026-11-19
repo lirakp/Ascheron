@@ -160,9 +160,64 @@ const blutgaenger: Drawer = () => {
   return p;
 };
 
+const rankenweber: Drawer = () => {
+  const p = new PB(32, 22);
+  const vine = '#3a6a32', vineD = '#2a4a24';
+  // Beine aus Ranken
+  for (const [x0, x1, y1] of [[10, 2, 20], [12, 5, 21], [20, 27, 21], [22, 30, 20], [11, 3, 13], [21, 29, 13]]) { p.line(x0, 11, (x0 + x1) / 2, 6, vine); p.line((x0 + x1) / 2, 6, x1, y1, vine); }
+  p.ellipse(16, 12, 8, 6, vineD);
+  p.ellipse(16, 11, 6, 4, vine);
+  // Dornen
+  for (const [x, y] of [[10, 8], [22, 8], [14, 6], [19, 6], [16, 17]]) p.set(x, y, '#c8b890');
+  // Rosenaugen (bluten)
+  for (const [x, y] of [[12, 11], [15, 10], [18, 10], [21, 11]]) { p.rect(x, y, 2, 2, '#c0303a'); p.set(x, y, '#e8505a'); p.set(x, y + 2, '#8a1a20'); }
+  return p;
+};
+
+const gaertnerin: Drawer = () => {
+  const p = new PB(60, 78);
+  const vine = '#3a6a32', vineD = '#2c5028', hat = '#4a3a24';
+  // breiter Dornenhut
+  p.ellipse(30, 12, 27, 5, hat); p.ellipse(30, 7, 12, 6, hat);
+  for (let x = 4; x < 57; x += 5) p.set(x, 12 + (x % 2), '#c8b890');
+  // Gesicht im Schatten, Augen
+  p.ellipse(30, 19, 7, 6, '#1e2a1a'); p.rect(26, 18, 2, 1, '#d8c060'); p.rect(33, 18, 2, 1, '#d8c060');
+  // Körper aus Ranken (Kleid)
+  for (let y = 25; y < 74; y++) { const w = 6 + (y - 25) * 0.42; p.rect(Math.round(30 - w), y, Math.round(w * 2), 1, (y % 6 < 3) ? vine : vineD); }
+  for (let y = 28; y < 72; y += 5) p.line(30 - (y - 25) * 0.3, y, 30 + (y - 25) * 0.3, y + 3, '#24421f');
+  // rote Herzrose in der Brust (Käfig darum)
+  p.ellipse(30, 34, 4, 4, '#2a1a10');
+  // Arme mit Gartenscheren
+  p.line(22, 30, 8, 46, vine); p.line(38, 30, 52, 46, vine);
+  p.line(8, 46, 2, 64, '#a8aebb'); p.line(10, 46, 6, 66, '#c8ceda'); p.line(52, 46, 58, 64, '#a8aebb'); p.line(50, 46, 54, 66, '#c8ceda');
+  p.rect(6, 44, 5, 3, '#6a4a30'); p.rect(49, 44, 5, 3, '#6a4a30');
+  return p;
+};
+
+const herzrose: Drawer = () => {
+  const p = new PB(18, 18);
+  p.ellipse(9, 9, 5, 5, '#c0303a'); p.ellipse(8, 8, 3, 3, '#e04a50'); p.set(9, 9, '#8a1a20'); p.set(7, 7, '#ff8a8a');
+  for (const [x, y] of [[1, 9], [17, 9], [9, 1], [9, 17], [3, 3], [15, 3], [3, 15], [15, 15]]) p.line(9, 9, x, y, '#3a5a2a');
+  p.ellipse(9, 9, 5, 5, '#c0303a'); p.ellipse(8, 8, 3, 3, '#e04a50');
+  return p;
+};
+
+const inquisitor: Drawer = () => {
+  const p = new PB(20, 28);
+  const robe = '#d8d0b8', gold = '#d8a83a';
+  p.ellipse(10, 6, 5, 5, robe); p.rect(5, 6, 10, 3, robe);
+  p.rect(7, 5, 6, 4, '#2a2a30'); p.rect(8, 6, 1, 1, '#f0e080'); p.rect(11, 6, 1, 1, '#f0e080'); // Maske
+  p.rect(5, 10, 10, 15, robe); p.rect(9, 10, 2, 15, gold);
+  p.rect(4, 24, 12, 2, '#b8b098');
+  p.rect(3, 11, 2, 8, robe); p.rect(15, 11, 2, 8, robe);
+  p.line(17, 19, 17, 4, '#7a5232'); p.rect(16, 2, 3, 3, gold);
+  return p;
+};
+
 export const MONSTER_DRAWERS: Record<string, Drawer> = {
   m_aschhund: aschhund, m_kanalwuerger: kanalwuerger, m_kreidekriecher: kreidekriecher, m_hohlmann: hohlmann,
   m_kreidemutter: kreidemutter, m_flanke: flanke, m_sitzer: sitzer, m_gloeckner: gloeckner, m_kloeppel: kloeppel, m_blutgaenger: blutgaenger,
+  m_rankenweber: rankenweber, m_gaertnerin: gaertnerin, m_herzrose: herzrose, m_inquisitor: inquisitor,
 };
 
 export function monsterCanvas(key: string): HTMLCanvasElement {

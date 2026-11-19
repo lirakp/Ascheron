@@ -185,6 +185,7 @@ export function drawCharFrame(a: Appearance, dir: number, frame: number, raw = f
       if (a.beard === 'kurz') { for (let x = 4; x <= 11; x++) p.set(x, hy + 7, bc); for (let x = 5; x <= 10; x++) if (x < 7 || x > 8) p.set(x, hy + 6, bc); p.set(4, hy + 5, bc); p.set(11, hy + 5, bc); }
       if (a.beard === 'lang') { for (let x = 4; x <= 11; x++) p.set(x, hy + 7, bc); for (let x = 5; x <= 10; x++) if (x < 7 || x > 8) p.set(x, hy + 6, bc); p.set(4, hy + 5, bc); p.set(11, hy + 5, bc); p.rect(5, by, 6, 2, bc); p.rect(6, by + 2, 4, 1, bcD); p.set(7, by + 3, bcD); }
       drawHairFront(p, a, hy, by);
+      if (a.tattoo) { p.set(10, hy + 5, '#a0202a'); p.set(10, hy + 6, '#a0202a'); p.set(9, hy + 6, '#a0202a'); }
     } else {
       drawHairBack(p, a, hy, by);
       if (race.ears === 'tier') { /* keine Menschenohren */ }
@@ -207,6 +208,7 @@ export function drawCharFrame(a: Appearance, dir: number, frame: number, raw = f
     if (a.beard === 'stoppel') { p.set(6, hy + 7, shade(bc, -0.2)); p.set(8, hy + 7, shade(bc, -0.2)); }
     drawHairSide(p, a, hy, by);
     if (race.ears === 'tier') drawAnimalEars(p, a, hy, dir);
+    if (a.tattoo) { p.set(7, hy + 5, '#a0202a'); p.set(8, hy + 6, '#a0202a'); }
   }
   void bob;
   if (raw) return p;

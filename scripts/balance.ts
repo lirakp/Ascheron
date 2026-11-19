@@ -23,8 +23,9 @@ function mkEnemy(id: string): F[] {
   const d = id.endsWith('_elite') ? eliteOf(id.replace('_elite', '')) : MONSTERS[id];
   const f: F = { name: d.name, side: 'e', hp: d.hp, max: d.hp, atk: d.atk, def: d.def, mag: d.mag, spd: d.spd, mp: 0, next: 0, ap: 0, d, alive: true, parts: [], st: {}, herz: 0 };
   const out = [f];
-  const part = d.id === 'kreidemutter' ? 'kreidemutter_flanke' : d.id === 'gloeckner' ? 'gloeckner_kloeppel' : null;
-  if (part) { const pd = MONSTERS[part]; const p: F = { name: pd.name, side: 'e', hp: pd.hp, max: pd.hp, atk: 0, def: pd.def, mag: 0, spd: 0, mp: 0, next: 1e9, ap: 0, d: pd, alive: true, parent: f, parts: [], st: {}, herz: 0 }; f.parts.push(p); out.push(p); }
+  if (d.eyes) (f as F & { eyes?: number }).eyes = d.eyes;
+  const part = d.id === 'kreidemutter' ? 'kreidemutter_flanke' : d.id === 'gloeckner' ? 'gloeckner_kloeppel' : d.id === 'gaertnerin' ? 'gaertnerin_herz' : null;
+  if (part) { const pd = MONSTERS[part]; const p: F = { name: pd.name, side: 'e', hp: pd.hp, max: pd.hp, atk: 0, def: pd.def, mag: 0, spd: 0, mp: 0, next: 1e9, ap: 0, d: pd, alive: true, parent: f, parts: [], st: {}, herz: 0 }; f.parts.push(p); out.push(p); if (pd.id === 'gaertnerin_herz') p.st.dornenkaefig = 99; }
   return out;
 }
 
@@ -63,12 +64,14 @@ function fight(members: Member[], enemies: string[], sk: Skill, potions = 3, car
   let rounds = 0, used = 0;
   const hit = (t: F, raw: number, info: { precise?: boolean; licht?: boolean } = {}) => {
     if (!t.alive) return;
-    if (t.st.verkrustet) return;
+    if (t.st.verkrustet || t.st.dornenkaefig) return;
     t.hp -= roll(raw, R, !!t.st.wehrlos);
+    const te = t as F & { eyes?: number };
+    if (te.eyes && te.eyes > 0) { te.eyes--; if (t.hp <= 0 && te.eyes > 0) t.hp = 1; }
     if (t.hp <= 0) {
       if (t.d?.id.startsWith('hohlmann') && !t.rose && !info.precise && !info.licht) { t.rose = true; t.hp = Math.round(t.max * 0.4); return; }
       t.alive = false;
-      if (t.parent && t.parent.alive) { if (t.parent.d!.id === 'kreidemutter') t.parent.alive = false; else { t.parent.st.wehrlos = 99; t.parent.def = 0; t.parent.atk = Math.round(t.parent.atk * 0.5); } }
+      if (t.parent && t.parent.alive) { if (t.parent.d!.id === 'kreidemutter' || t.parent.d!.id === 'gaertnerin') t.parent.alive = false; else { t.parent.st.wehrlos = 99; t.parent.def = 0; t.parent.atk = Math.round(t.parent.atk * 0.5); } }
       for (const pp of t.parts) pp.alive = false;
     }
   };
@@ -87,7 +90,7 @@ function fight(members: Member[], enemies: string[], sk: Skill, potions = 3, car
       const m = f.m!;
       const targets = E.filter((e) => e.alive);
       // Zielwahl: Schwachstellen-Teile zuerst
-      const flank = targets.find((e) => e.d?.part && !e.st.verkrustet);
+      const flank = targets.find((e) => e.d?.part && !e.st.verkrustet && !e.st.dornenkaefig);
       const tgt = flank ?? targets.filter((e) => !e.d?.part).sort((a, b) => a.hp - b.hp)[0];
       const low = P.filter((p) => p.alive && p.hp < p.max * 0.45).sort((a, b) => a.hp / a.max - b.hp / b.max)[0];
       if (low && m.elements.includes('licht') && m.elements.includes('wasser') && f.mp >= 9) { f.mp -= 9; low.hp = Math.min(low.max, low.hp + healAmount(f.mag, 1.6)); }
@@ -108,13 +111,15 @@ function fight(members: Member[], enemies: string[], sk: Skill, potions = 3, car
       const d = f.d!;
       const kl = f.parts.find((p) => p.d!.id === 'gloeckner_kloeppel');
       const fl = f.parts.find((p) => p.d!.id === 'kreidemutter_flanke');
-      let pool = d.attacks.filter((a) => !(a.special === 'laeuten' && (!kl?.alive || f.st.wehrlos)) && !(a.special === 'beschwoeren' && E.filter((e) => e.alive && !e.parent).length >= 4) && !(a.special === 'verhaerten' && (!fl?.alive || fl.st.verkrustet)));
+      const rose = f.parts.find((p) => p.d!.id === 'gaertnerin_herz');
+      let pool = d.attacks.filter((a) => !(a.special === 'laeuten' && (!kl?.alive || f.st.wehrlos)) && !(a.special === 'beschwoeren' && E.filter((e) => e.alive && !e.parent).length >= 4) && !(a.special === 'verhaerten' && (!fl?.alive || fl.st.verkrustet)) && !(a.special === 'bluehen' && (!rose?.alive || !rose.st.dornenkaefig)));
       if (f.st.wehrlos) pool = [{ name: 'x', hits: 1, power: 0.6, kind: 'parry', windup: 0, gap: 0, target: 'one' } as AttackDef];
       const tot = pool.reduce((a, x) => a + (x.weight ?? 1), 0);
       let r = R() * tot; let atk = pool[0];
       for (const a of pool) { r -= a.weight ?? 1; if (r <= 0) { atk = a; break; } }
       if (atk.special === 'beschwoeren') { const n = 1 + (R() < 0.5 ? 1 : 0); for (let i = 0; i < n; i++) { const k = mkEnemy('kreidekriecher')[0]; k.next = f.next + 5; E.push(k); } }
       else if (atk.special === 'verhaerten') fl!.st.verkrustet = 2;
+      else if (atk.special === 'bluehen') { delete rose!.st.dornenkaefig; rose!.st.offen = 2; }
       else if (atk.special === 'laeuten') { for (let s = 0; s < 3; s++) if (R() > sk.bell) for (const p of P) if (p.alive) { p.herz++; if (p.herz >= 3) { p.alive = false; p.hp = 0; } } }
       else {
         const alive = P.filter((p) => p.alive);
@@ -133,6 +138,7 @@ function fight(members: Member[], enemies: string[], sk: Skill, potions = 3, car
             hit(t, enemyDamage(f.atk, atk.power, t.def, { schildwall: !!t.st.schildwall, defending: t.defending }));
             if (atk.status === 'brand' && R() < (atk.statusChance ?? 0.3)) t.st.brand = 3;
             if (atk.status === 'muede' && R() < (atk.statusChance ?? 0.3)) t.st.muede = 3;
+            if (atk.status === 'kokon' && R() < (atk.statusChance ?? 0.3)) t.st.muede = 1;
           }
         }
         if (allParried && atk.target !== 'all' && targets[0].alive) hit(f, targets[0].atk * 0.9 * (22 / (22 + f.def)), { precise: true });
@@ -141,7 +147,7 @@ function fight(members: Member[], enemies: string[], sk: Skill, potions = 3, car
     tick(f);
   }
   return { win: false, rounds, hpLeft: 0, potions: used, P, potionsLeft: potions };
-  function tick(f: F) { for (const k of Object.keys(f.st)) { if (k === 'wehrlos') continue; f.st[k]--; if (f.st[k] <= 0) delete f.st[k]; } for (const e of E) if (e.parent && e.st.verkrustet && f === e.parent) { /* läuft über Elternzug */ } }
+  function tick(f: F) { for (const k of Object.keys(f.st)) { if (k === 'wehrlos' || k === 'dornenkaefig') continue; f.st[k]--; if (f.st[k] <= 0) { delete f.st[k]; if (k === 'offen') f.st.dornenkaefig = 99; } } for (const p of f.parts) if (p.alive) tick(p); for (const e of E) if (e.parent && e.st.verkrustet && f === e.parent) { /* läuft über Elternzug */ } }
 }
 
 interface Scenario { name: string; party: () => Member[]; enemies: string[]; potions: number; note: string }
@@ -158,6 +164,10 @@ const S: Scenario[] = [
   { name: 'Nordtor: 2 Sitzer', note: 'Trio, Stufe 6, C-Ausrüstung', party: () => party([{ race: 'mensch', cls: 'speer', level: 6, weapon: 'C' }], ['brann', 'tamin'], 6), enemies: ['sitzer', 'sitzer'], potions: 4 },
   { name: 'Glöckner', note: 'Duo, Stufe 6, C-Ausrüstung', party: () => party([{ race: 'mensch', cls: 'speer', level: 6, weapon: 'C' }], ['brann'], 6), enemies: ['gloeckner'], potions: 4 },
   { name: 'Glöckner', note: 'Trio, Stufe 6, C-Ausrüstung', party: () => party([{ race: 'mensch', cls: 'speer', level: 6, weapon: 'C' }], ['brann', 'tamin'], 6), enemies: ['gloeckner'], potions: 4 },
+  { name: 'Dorn: 2 Rankenweber', note: 'Trio, Stufe 7, C-Ausrüstung', party: () => party([{ race: 'mensch', cls: 'speer', level: 7, weapon: 'C' }], ['brann', 'tamin'], 7), enemies: ['rankenweber', 'rankenweber'], potions: 4 },
+  { name: 'Gärtnerin', note: 'Trio, Stufe 7, C-Ausrüstung', party: () => party([{ race: 'mensch', cls: 'speer', level: 7, weapon: 'C' }], ['brann', 'tamin'], 7), enemies: ['gaertnerin'], potions: 5 },
+  { name: 'Gärtnerin', note: 'Duo, Stufe 8, C-Ausrüstung', party: () => party([{ race: 'mensch', cls: 'speer', level: 8, weapon: 'C' }], ['brann'], 8), enemies: ['gaertnerin'], potions: 5 },
+  { name: 'Inquisitor', note: 'Duo, Stufe 7, C-Ausrüstung', party: () => party([{ race: 'mensch', cls: 'speer', level: 7, weapon: 'C' }], ['brann'], 7), enemies: ['inquisitor'], potions: 3 },
   { name: 'Freier Dungeon-Anführer (Aschhund)', note: 'Duo, Stufe 4', party: () => party([{ race: 'mensch', cls: 'speer', level: 4 }], ['brann'], 4), enemies: ['aschhund_elite'], potions: 3 },
 ];
 

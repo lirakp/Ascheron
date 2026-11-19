@@ -12,7 +12,7 @@ export interface AttackDef {
   statusChance?: number;
   text?: string;
   weight?: number;
-  special?: 'laeuten' | 'beschwoeren' | 'verhaerten' | 'ziehen';
+  special?: 'laeuten' | 'beschwoeren' | 'verhaerten' | 'ziehen' | 'zurueckschneiden' | 'bluehen';
 }
 
 export interface MonsterDef {
@@ -31,6 +31,7 @@ export interface MonsterDef {
   scale?: number;
   desc: string;
   part?: string; // Teil eines Bosses
+  eyes?: number; // Rankenweber: erst nach allen getroffenen Rosenaugen tötbar
 }
 
 const A = (name: string, hits: number, power: number, kind: 'parry' | 'dodge', extra: Partial<AttackDef> = {}): AttackDef =>
@@ -142,6 +143,47 @@ export const MONSTERS: Record<string, MonsterDef> = {
     sprite: 'm_blutgaenger', desc: 'Hautlose Gestalten aus rotem, nassem Fleisch. Sie gehen rückwärts, mit nach hinten gedrehtem Kopf.',
   },
 };
+
+export const THORN_MONSTERS: Record<string, MonsterDef> = {
+  rankenweber: {
+    id: 'rankenweber', name: 'Rankenweber', rank: 'C', hp: 120, atk: 20, def: 6, mag: 6, spd: 11, xp: 48, eyes: 4,
+    weak: ['feuer'], resist: ['dendro', 'wasser'],
+    attacks: [
+      A('Dornenseide', 2, 0.6, 'parry', { gap: 330, status: 'langsam', statusChance: 0.5, text: 'Klebrige Dornenfäden.' }),
+      A('Einspinnen', 1, 1.0, 'dodge', { windup: 1200, status: 'kokon', statusChance: 0.8, text: 'Er will dich in einen Kokon spinnen!' }),
+      A('Rosenbiss', 1, 1.2, 'parry', { windup: 800 }),
+    ],
+    drops: [{ item: 'dornenseide', chance: 0.8 }, { item: 'kern_klein', chance: 0.7 }],
+    sprite: 'm_rankenweber', desc: 'Spinnen aus geflochtenen Dornenranken mit Rosen als Augen, die echtes Blut bluten. Tötbar erst, wenn alle Rosenaugen getroffen sind.',
+  },
+  gaertnerin: {
+    id: 'gaertnerin', name: 'Gärtnerin', rank: 'B', hp: 1000, atk: 34, def: 12, mag: 10, spd: 8, xp: 420, boss: true,
+    weak: ['feuer'], resist: ['dendro', 'erde'],
+    attacks: [
+      A('Zurückschneiden', 2, 0.95, 'parry', { special: 'zurueckschneiden', windup: 1100, gap: 420, weight: 1.4, text: '„Was aus der Reihe wächst, wird geschnitten.“' }),
+      A('Rankenpeitsche', 1, 0.9, 'dodge', { target: 'all', windup: 1250 }),
+      A('Blühen', 0, 0, 'parry', { special: 'bluehen', weight: 0.7, text: 'Der Dornenkäfig um die rote Rose öffnet sich – kurz.' }),
+    ],
+    drops: [{ item: 'herzrose', chance: 1 }, { item: 'kern_mittel', chance: 1, qty: [2, 2] }, { item: '#schlafend', chance: 1 }, { item: '#schlafend', chance: 1 }],
+    sprite: 'm_gaertnerin', desc: 'Eine Frauengestalt aus geflochtenen Ranken mit breitem Dornenhut und Gartenscheren statt Händen. Ihr Herz ist die einzige rote Rose im Garten.',
+  },
+  gaertnerin_herz: {
+    id: 'gaertnerin_herz', name: 'Rote Herzrose', rank: 'B', hp: 240, atk: 0, def: 4, mag: 0, spd: 0, xp: 0, part: 'gaertnerin',
+    weak: ['feuer'], resist: [], attacks: [], drops: [],
+    sprite: 'm_herzrose', desc: 'Das Herz der Gärtnerin in einem Käfig aus Dornen. Für Träger des Dornen-Tattoos öffnen sich die Dornen.',
+  },
+  inquisitor: {
+    id: 'inquisitor', name: 'Inquisitor', rank: 'B', hp: 200, atk: 29, def: 9, mag: 14, spd: 10, xp: 90,
+    weak: ['schatten'], resist: ['licht'],
+    attacks: [
+      A('Bannlicht', 1, 1.2, 'dodge', { windup: 1100, text: 'Für Aurelion!' }),
+      A('Ketzerkette', 3, 0.5, 'parry', { gap: 300, status: 'langsam', statusChance: 0.4 }),
+    ],
+    drops: [{ item: 'kern_mittel', chance: 0.6 }, { item: 'heiltrank2', chance: 0.5 }],
+    sprite: 'm_inquisitor', desc: 'Ein Jäger der Kirche. Er spürt die Manasignatur des Dornen-Tattoos.',
+  },
+};
+Object.assign(MONSTERS, THORN_MONSTERS);
 
 export function eliteOf(id: string): MonsterDef {
   const b = MONSTERS[id];

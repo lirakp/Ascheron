@@ -48,6 +48,14 @@ function bookBuy(el: El, rr: () => void, price: number): HTMLElement {
 
 // ---------------- Abenteurergilde ----------------
 function gilde(): void {
+  if (G.party[0].tattoo && !G.flags.gildeTattoo) {
+    G.flags.gildeTattoo = true;
+    dialog([
+      { who: 'Gildenmeisterin Orla', text: 'Sie starrt auf das Dornenmuster an deinem Hals. „Weißt du, was du da trägst? Eine Eintrittskarte zur Verlorenen Königin. Und eine Zielscheibe.“' },
+      { who: 'Gildenmeisterin Orla', text: '„Die Gilde wirft dich nicht raus. Noch nicht. Aber die Inquisition fragt schon nach dir, und die Händler hier haben Angst. Pass auf dich auf.“' },
+    ], () => gilde());
+    return;
+  }
   const r = G.advRank;
   tabbed('Abenteurergilde von Krähenfurt', `„10 % Blutsteuer auf jede Quest und jedes Beutestück.“ – Dein Rang: ${r} (${RANK_META[r].title}), ${G.rp} Rangpunkte`, [
     ['Auftragsbrett', (el, rr) => {
@@ -149,7 +157,9 @@ function kirche(ctx: ServiceCtx): void {
   tabbed('Kapelle des Sanktuariums', 'Aurelion, Gott der Magie und des Lichts, wacht über Krähenfurt. Angeblich.', [
     ['Heilung', (el, rr) => {
       el.appendChild(h('p', {}, 'Ein Kleriker legt dem Trupp die Hände auf. Die Kirche nimmt eine „Spende“.'));
-      el.appendChild(btn(`Trupp heilen (${money(8)})`, () => { if (pay(8)) { healParty(); SFX.heal(); toast('Der Trupp ist geheilt.'); rr(); } }));
+      const healCost = G.party[0].tattoo ? 40 : 8;
+      if (G.party[0].tattoo) el.appendChild(h('p', { class: 'blood', style: 'font-size:13px' }, '„Für Gezeichnete ist die Spende höher.“'));
+      el.appendChild(btn(`Trupp heilen (${money(healCost)})`, () => { if (pay(healCost)) { healParty(); SFX.heal(); toast('Der Trupp ist geheilt.'); rr(); } }));
       const cursed = G.gear.filter((g) => g.curse);
       el.appendChild(section('Flüche lösen', h('p', { class: 'dim', style: 'font-size:13px' }, 'Für Ware von der Rostigen Münze. Offiziell verurteilt die Kirche diesen Handel – inoffiziell verdient sie an beiden Enden.')));
       const l = h('div', { class: 'list' });
@@ -173,7 +183,7 @@ function kirche(ctx: ServiceCtx): void {
       if (!learners.length) l.appendChild(h('div', { class: 'dim' }, 'Alle im Trupp kennen das Licht.'));
       el.appendChild(l);
     }],
-    ['Kleriker mieten', (el, rr) => recruitList(el, rr, 'kirche')],
+    ['Kleriker mieten', (el, rr) => { if (G.party[0].tattoo) { el.appendChild(h('p', { class: 'blood' }, 'Hochkleriker Aldemar: „An Gezeichnete vermietet das Sanktuarium keine Kleriker. Sei froh, dass ich dich nicht der Inquisition melde.“')); return; } recruitList(el, rr, 'kirche'); }],
     ['Sündenklingen', (el) => {
       el.appendChild(h('p', {}, 'Für Träger von Sündenklingen (Rang S/SS) bietet die Kirche ab 500 Gold die „Dämpfung“ an: Der Fluch wird auf andere umgeleitet. Wohin genau, fragt man besser nicht.'));
       el.appendChild(h('p', { class: 'dim' }, 'Du besitzt keine Sündenklinge. Noch nicht.'));

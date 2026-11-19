@@ -1,4 +1,4 @@
-import { G, stats, money, gearOf, maxElements, maxMp2, isHalf, xpForLevel, itemName, save, manaRank } from '../core/state';
+import { G, stats, money, gearOf, maxElements, maxMp2, isHalf, xpForLevel, itemName, save, manaRank, manaRank2 } from '../core/state';
 import type { Member, ItemInst } from '../data/types';
 import { RACES, CLASSES } from '../data/races';
 import { ITEMS, statLine } from '../data/items';
@@ -46,7 +46,7 @@ export function memberCard(m: Member, rerender: () => void, opts: { equip?: bool
       h('div', { class: 'row' }, h('b', { class: 'gold', style: 'font-weight:normal;font-size:16px' }, m.name), h('span', { class: 'dim' }, `${race.name} · ${CLASSES[m.cls].short} · Stufe ${m.level}`)),
       h('div', { style: 'font-size:12.5px' }, `LP ${m.hp}/${s.hp} · Mana ${m.mp}/${s.mp}${isHalf(m) ? ` · 2. Fluss ${m.mp2}/${maxMp2(m)}` : ''} · Angriff ${s.atk} · Vert. ${s.def} · Magie ${s.mag} · Tempo ${s.spd}`),
       h('div', { style: 'width:200px' }, bar('xp', m.xp, xpForLevel(m.level))),
-      h('div', { style: 'font-size:12.5px' }, 'Mana-Rang ', h('b', { class: 'manac', style: 'font-weight:normal' }, race.mana2 ? `${race.mana2}+${race.mana}` : manaRank(m)), ` · verbindet bis zu ${maxElements(m)} Element(e) · Elemente: `,
+      h('div', { style: 'font-size:12.5px' }, 'Mana-Rang ', h('b', { class: 'manac', style: 'font-weight:normal' }, manaRank2(m) ? `${manaRank2(m)}+${manaRank(m)}` : manaRank(m)), m.tattoo ? h('span', { class: 'blood' }, ' (Dornen-Tattoo)') : null, ` · verbindet bis zu ${maxElements(m)} Element(e) · Elemente: `,
         ...m.elements.map((e) => h('span', { style: `color:${EL_COLOR[e]};margin-right:8px;white-space:nowrap` }, ico(e, 16), ' ', EL_NAME[e]))),
       h('div', { style: 'font-size:12.5px' }, 'Techniken: ', [race.tech, CLASSES[m.cls].tech].map((t) => `${TECHS[t].name} (${TECHS[t].ap} Schwung)`).join(', ')),
       eq('weapon', 'Waffe'), eq('armor', 'Rüstung'), eq('trinket', 'Talisman'),
