@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit",
     "balance": "tsx scripts/balance.ts",
     "app": "npm run build && electron .",
-    "dist:win": "npm run build && electron-builder --win nsis portable --x64"
+    "dist:win": "npm run build && electron-builder --win nsis portable --x64 --publish never"
   },
   "dependencies": {
     "@fontsource/pixelify-sans": "^5.2.5",
