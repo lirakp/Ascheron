@@ -38,6 +38,12 @@ export class BootScene extends Phaser.Scene {
     this.textures.addCanvas('chest', chest(false));
     this.textures.addCanvas('chest_open', chest(true));
     this.textures.addCanvas('herb', iconCanvas('herb', 1));
+    // Boden-Details für Dungeons (transparent, passen auf jeden Untergrund)
+    const deco = (draw: (p: PB) => void) => { const p = new PB(16, 16); draw(p); const [c, ctx] = canvas(16, 16); p.draw(ctx, 0, 0); return c; };
+    this.textures.addCanvas('deco_crack', deco((p) => { p.line(2, 3, 6, 6, 'rgba(10,11,18,0.55)'); p.line(6, 6, 5, 11, 'rgba(10,11,18,0.55)'); p.line(6, 6, 11, 8, 'rgba(10,11,18,0.55)'); p.set(7, 7, 'rgba(255,255,255,0.12)'); }));
+    this.textures.addCanvas('deco_puddle', deco((p) => { p.ellipse(8, 9, 6, 3.5, 'rgba(20,40,64,0.75)'); p.ellipse(7, 8, 4, 2, 'rgba(40,70,100,0.7)'); p.rect(5, 8, 3, 1, 'rgba(140,180,220,0.7)'); p.set(11, 10, 'rgba(140,180,220,0.6)'); }));
+    this.textures.addCanvas('deco_pebbles', deco((p) => { for (const [x, y] of [[3, 4], [11, 6], [7, 12], [13, 13]]) { p.rect(x, y, 2, 1, 'rgba(10,11,18,0.45)'); p.set(x, y - 1, 'rgba(255,255,255,0.18)'); } }));
+    this.textures.addCanvas('deco_web', deco((p) => { for (let i = 0; i < 9; i++) { p.set(i, 0, 'rgba(210,214,226,0.7)'); p.set(0, i, 'rgba(210,214,226,0.7)'); p.set(i, i, 'rgba(190,194,206,0.55)'); } p.line(0, 5, 5, 0, 'rgba(190,194,206,0.55)'); p.line(0, 8, 8, 0, 'rgba(170,174,186,0.45)'); }));
     // Staub (Kreidekriecher-Hinweis)
     const [du, duc] = canvas(2, 2); duc.fillStyle = '#e8e3d8'; duc.fillRect(0, 0, 2, 2); this.textures.addCanvas('dust', du);
     this.scene.start('Title');

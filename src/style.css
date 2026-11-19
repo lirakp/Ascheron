@@ -125,10 +125,10 @@ button.b.danger { border-color: #7a2a24; }
 .infobox b { color: var(--text); font-weight: 500; }
 
 /* Battle */
-.bt-menu { position: absolute; left: 12px; bottom: 12px; width: 340px; }
-.bt-menu .who { color: var(--gold); margin-bottom: 6px; }
-.bt-menu .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 5px; }
-.bt-sub { position: absolute; left: 364px; bottom: 12px; width: 400px; max-height: 300px; display: flex; flex-direction: column; }
+.bt-menu { position: absolute; left: 50%; transform: translateX(-50%); bottom: 10px; width: 800px; padding: 8px 10px; }
+.bt-menu .who { color: var(--gold); margin-bottom: 5px; font-size: 13px; }
+.bt-menu .grid { display: grid; grid-template-columns: repeat(6, 1fr); gap: 5px; }
+.bt-sub { position: absolute; left: 50%; transform: translateX(-50%); bottom: 102px; width: 480px; max-height: 260px; display: flex; flex-direction: column; }
 .bt-sub .body { overflow-y: auto; }
 .bt-party { position: absolute; right: 12px; bottom: 12px; display: flex; flex-direction: column; gap: 4px; width: 220px; pointer-events: none; }
 .bt-party .pcard { width: 220px; }

@@ -44,13 +44,14 @@ export class DungeonScene extends Phaser.Scene {
   blinking = false;
   stepT = 0;
   bossRoom!: Room;
+  decor: [number, number, string][] = [];
   startRoom!: Room;
 
   constructor() { super('Dungeon'); }
 
   init(data: { id: string }): void {
     this.d = G.dungeons[data.id];
-    this.mobs = []; this.chests = []; this.inBattle = false; this.walked = 0; this.daysInside = 0; this.exitOpen = false;
+    this.decor = []; this.mobs = []; this.chests = []; this.inBattle = false; this.walked = 0; this.daysInside = 0; this.exitOpen = false;
     this.blut = G.blutmond > 0;
   }
 
@@ -73,6 +74,17 @@ export class DungeonScene extends Phaser.Scene {
 
     this.populate();
     this.vision = this.add.image(this.player.x, this.player.y, 'vision').setScale(0.55).setDepth(40);
+    for (const [x, y, k] of this.decor) if (this.tiles[y][x] === THEME[this.d.theme].floor) this.add.image(x * 16 + 8, y * 16 + 8, k).setDepth(1).setFlipX(((x * 7 + y) % 2) === 0);
+    // Fackellicht: leuchtet durch die Dunkelheit und flackert
+    for (let y = 0; y < this.H; y++) for (let x = 0; x < this.W; x++) {
+      if (this.tiles[y][x] !== T.TORCH) continue;
+      const gl = this.add.image(x * 16 + 8, y * 16 + 6, 'glow').setScale(2.6).setTint(0xff9a3a).setAlpha(0.32).setBlendMode(Phaser.BlendModes.ADD).setDepth(42);
+      this.tweens.add({ targets: gl, alpha: { from: 0.22, to: 0.38 }, scale: { from: 2.4, to: 2.8 }, yoyo: true, repeat: -1, duration: 160 + Math.random() * 220 });
+      const fl = this.add.image(x * 16 + 8, y * 16 + 3, 'glow').setScale(0.35).setTint(0xffe090).setBlendMode(Phaser.BlendModes.ADD).setDepth(43);
+      this.tweens.add({ targets: fl, alpha: { from: 0.6, to: 1 }, yoyo: true, repeat: -1, duration: 90 + Math.random() * 120 });
+    }
+    // Schwebender Staub im Licht
+    this.add.particles(0, 0, 'px', { x: { min: -200, max: 200 }, y: { min: -120, max: 120 }, speedX: { min: -3, max: 3 }, speedY: { min: -4, max: 2 }, scale: 0.25, alpha: { start: 0.5, end: 0 }, lifespan: 4000, frequency: 120, tint: this.d.theme === 'chalk' ? 0xf0ead8 : 0xc8c0a8, follow: this.player }).setDepth(39);
     if (this.blut) this.add.rectangle(0, 0, 960, 540, 0x600808, 0.18).setOrigin(0).setScrollFactor(0).setDepth(41);
 
     showHud(this.d.name + (this.blut ? ' · Blut-Dungeon' : ''), 'E: Interagieren · Esc: Menü');
@@ -137,6 +149,32 @@ export class DungeonScene extends Phaser.Scene {
       if (this.d.theme === 'sewer' && rm !== this.bossRoom && rm.h >= 7) for (let x = rm.x + 1; x < rm.x + rm.w - 1; x++) if (x !== rm.cx && x !== rm.cx + 1) this.tiles[rm.y + 1][x] = T.SWATER;
       if (this.d.id === 'nordtor' && rm !== this.bossRoom) for (let y = rm.y + 1; y < rm.y + rm.h - 1; y += 2) for (let x = rm.x + 1; x < rm.x + rm.w - 1; x++) if (Math.abs(x - rm.cx) > 1 && r() < 0.55) this.tiles[y][x] = T.BENCH;
       for (let i = 0; i < 3; i++) { const x = rm.x + 1 + Math.floor(r() * (rm.w - 2)), y = rm.y + 1 + Math.floor(r() * (rm.h - 2)); if (this.tiles[y][x] === th.floor) this.tiles[y][x] = this.blut && r() < 0.6 ? T.BLOOD : T.BONES; }
+    }
+    // Details: Fackeln, Moos, Risse, Banner, Rohre, Pfützen, Geröll, Spinnweben
+    const chalk = this.d.theme === 'chalk', sewer = this.d.theme === 'sewer';
+    let lastTorch = -99;
+    for (let y = 0; y < this.H; y++) for (let x = 0; x < this.W; x++) {
+      const t = this.tiles[y][x];
+      if (t === th.wall) {
+        const n = r();
+        if (!chalk && x - lastTorch > 4 && n < 0.16) { this.tiles[y][x] = T.TORCH; lastTorch = x; }
+        else if (chalk && n < 0.14) this.tiles[y][x] = T.CWALL_FOSSIL;
+        else if (!chalk && sewer && n < 0.24) this.tiles[y][x] = T.PIPE;
+        else if (!chalk && !sewer && this.d.id === 'nordtor' && n < 0.24) this.tiles[y][x] = T.BANNER;
+        else if (!chalk && n < 0.36) this.tiles[y][x] = r() < 0.5 ? T.DWALL_MOSS : T.DWALL_CRACK;
+      } else if (t === th.floor) {
+        const n = r();
+        if (n < 0.07) this.decor.push([x, y, 'deco_crack']);
+        else if (!chalk && n < (sewer ? 0.14 : 0.09)) this.decor.push([x, y, 'deco_puddle']);
+        else if (n < 0.11) this.decor.push([x, y, 'deco_pebbles']);
+      }
+    }
+    for (const rm of ordered) {
+      if (this.tiles[rm.y][rm.x] === th.floor && !chalk) this.decor.push([rm.x, rm.y, 'deco_web']);
+      if (rm !== this.startRoom && rm !== this.bossRoom && r() < 0.6) {
+        const cx = r() < 0.5 ? rm.x : rm.x + rm.w - 1, cy = r() < 0.5 ? rm.y + rm.h - 1 : rm.y + 1;
+        if (this.tiles[cy][cx] === th.floor && !(cx === rm.cx || cx === rm.cx + 1)) this.tiles[cy][cx] = chalk ? T.CHALKROCK : T.RUBBLE;
+      }
     }
     // Sicherer Raum (nicht bei Blutmond)
     if (!this.blut && ordered.length > 3) {

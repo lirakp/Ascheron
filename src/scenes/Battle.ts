@@ -70,10 +70,11 @@ export class BattleScene extends Phaser.Scene {
   selIdx = 0;
   selArrow!: Phaser.GameObjects.Text;
   menuKeys: Record<string, () => void> = {};
+  shadows: { f: Fighter; sh: Phaser.GameObjects.Ellipse }[] = [];
 
   constructor() { super('Battle'); }
 
-  init(d: BattleData): void { this.finished = false; this.data_ = d; this.F = []; this.uid = 0; this.over = false; this.qte = null; this.pressLog = []; this.selecting = null; this.subEl = null; }
+  init(d: BattleData): void { this.shadows = []; this.finished = false; this.data_ = d; this.F = []; this.uid = 0; this.over = false; this.qte = null; this.pressLog = []; this.selecting = null; this.subEl = null; }
 
   create(): void {
     this.drawBackground(this.data_.bg);
@@ -83,12 +84,14 @@ export class BattleScene extends Phaser.Scene {
     this.tweens.add({ targets: this.selArrow, y: '+=6', yoyo: true, repeat: -1, duration: 300 });
 
     // Trupp
-    const pslots = [[250, 250], [205, 335], [250, 420]];
+    // Fußpunkte auf dem Kampfboden: vordere und hintere Reihe
+    const pslots = [[255, 410], [170, 358], [170, 462]];
     G.party.forEach((m, i) => {
       const key = 'b_' + m.id;
       ensureChar(this, key, m.app, true);
       const [x, y] = pslots[i];
-      const spr = this.add.sprite(x, y, key, 6).setScale(4).setDepth(20 + i);
+      const spr = this.add.sprite(x, y, key, 6).setOrigin(0.5, 1).setScale(4).setDepth(y / 10);
+      this.tweens.add({ targets: spr, scaleY: 4.12, yoyo: true, repeat: -1, duration: 1100 + i * 170, ease: 'Sine.easeInOut' });
       const s = stats(m);
       const f = this.addFighter({ side: 'p', name: m.name, member: m, hp: m.hp, maxHp: s.hp, atk: s.atk, def: s.def, mag: s.mag, spd: s.spd, spr, hx: x, hy: y, scale: 4 });
       if (m.hp <= 0) { f.alive = false; spr.setAngle(-90).setAlpha(0.5); }
@@ -96,20 +99,21 @@ export class BattleScene extends Phaser.Scene {
 
     // Gegner
     const blut = G.blutmond > 0 ? 1.2 : 1;
-    const eslots = [[700, 290], [810, 220], [820, 380], [610, 410]];
+    const eslots = [[700, 410], [815, 358], [820, 462], [600, 462]];
     let slot = 0;
     for (const id of this.data_.enemies) {
       const def = id.endsWith('_elite') ? eliteOf(id.replace('_elite', '')) : MONSTERS[id];
       const isBig = def.boss && (def.id === 'kreidemutter' || def.id === 'gloeckner');
-      const [x, y] = isBig ? [720, 300] : eslots[slot++ % eslots.length];
+      const [x, y] = isBig ? [730, 450] : eslots[slot++ % eslots.length];
       const sc = (def.scale ?? 1) * (isBig ? 3.2 : def.sprite === 'm_aschhund' || def.sprite === 'm_kanalwuerger' || def.sprite === 'm_kreidekriecher' ? 3.2 : 3.4);
-      const spr = this.add.image(x, y, def.sprite).setScale(def.id === 'gloeckner' ? 2.6 : sc).setDepth(15 + slot);
-      if (def.id === 'gloeckner') spr.setY(250);
+      const spr = this.add.image(x, y, def.sprite).setScale(def.id === 'gloeckner' ? 2.6 : sc).setOrigin(0.5, 1).setDepth(y / 10);
+      if (def.id === 'gloeckner') spr.setOrigin(0.5).setPosition(720, 250).setDepth(20);
       const f = this.addFighter({ side: 'e', name: def.name, mdef: def, hp: Math.round(def.hp * blut), maxHp: Math.round(def.hp * blut), atk: Math.round(def.atk * blut), def: def.def, mag: def.mag, spd: def.spd, spr, hx: spr.x, hy: spr.y, scale: spr.scaleX });
-      this.tweens.add({ targets: spr, y: spr.y - 4, yoyo: true, repeat: -1, duration: 900 + Math.random() * 400, ease: 'Sine.easeInOut' });
+      if (def.id === 'gloeckner') this.tweens.add({ targets: spr, y: spr.y - 4, yoyo: true, repeat: -1, duration: 1300, ease: 'Sine.easeInOut' });
+      else this.tweens.add({ targets: spr, scaleY: spr.scaleY * 1.04, yoyo: true, repeat: -1, duration: 800 + Math.random() * 400, ease: 'Sine.easeInOut' });
       if (def.id === 'kreidemutter') {
         const fl = MONSTERS.kreidemutter_flanke;
-        const fs = this.add.image(x + 70, y + 30, fl.sprite).setScale(2.4).setDepth(30);
+        const fs = this.add.image(x + 70, y - 70, fl.sprite).setScale(2.4).setDepth(60);
         this.tweens.add({ targets: fs, scale: 2.8, yoyo: true, repeat: -1, duration: 420 });
         const p = this.addFighter({ side: 'e', name: fl.name, mdef: fl, hp: fl.hp, maxHp: fl.hp, atk: 0, def: fl.def, mag: 0, spd: 0, spr: fs, hx: fs.x, hy: fs.y, scale: 2.4 });
         p.parent = f; f.parts.push(p);
@@ -123,6 +127,11 @@ export class BattleScene extends Phaser.Scene {
       }
     }
     for (const f of this.F) {
+      if (f.mdef?.id !== 'gloeckner' && !f.parent) {
+        const sw = Math.max(40, f.spr.displayWidth * 0.75);
+        const sh = this.add.ellipse(f.spr.x, f.hy, sw, sw * 0.22, 0x05060b, 0.45).setDepth(f.spr.depth - 0.5);
+        this.shadows.push({ f, sh });
+      }
       if (f.side === 'e') {
         f.barG = this.add.graphics().setDepth(45);
         f.label = this.add.text(f.hx, 0, f.name, { fontFamily: '"Pixelify Sans", sans-serif', fontSize: '13px', color: '#f0e2c0', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(45);
@@ -157,6 +166,9 @@ export class BattleScene extends Phaser.Scene {
     } else this.say(this.F.some((f) => f.mdef?.boss) ? `${this.F.find((f) => f.mdef?.boss)!.name}!` : 'Kampf!');
     this.time.delayedCall(900, () => this.loop());
   }
+
+  /** Bildmitte eines Kämpfers (Sprites stehen mit dem Fußpunkt auf dem Boden). */
+  cy(f: Fighter): number { return f.spr.y - (f.spr.originY - 0.5) * f.spr.displayHeight; }
 
   addFighter(o: Partial<Fighter> & { side: 'p' | 'e'; name: string; spr: Fighter['spr']; hx: number; hy: number; hp: number; maxHp: number; atk: number; def: number; mag: number; spd: number; scale: number }): Fighter {
     const f: Fighter = { id: this.uid++, next: 0, st: {}, ap: 0, defending: false, alive: true, parts: [], herz: 0, ...o } as Fighter;
@@ -200,7 +212,7 @@ export class BattleScene extends Phaser.Scene {
       if (f.side !== 'e' || !f.barG) continue;
       f.barG.clear();
       if (!f.alive) { f.label?.setVisible(false); continue; }
-      const w = 90, x = f.spr.x - w / 2, top = f.spr.y - f.spr.displayHeight / 2 - 16;
+      const w = 90, x = f.spr.x - w / 2, top = this.cy(f) - f.spr.displayHeight / 2 - 16;
       const y = Math.max(96, top);
       f.barG.fillStyle(0x03040a, 1).fillRect(x - 2, y - 2, w + 4, 10);
       f.barG.fillStyle(0x1e253c, 1).fillRect(x, y, w, 6);
@@ -219,7 +231,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   float(f: Fighter, text: string, color: string, big = false): void {
-    const t = this.add.text(f.spr.x + (Math.random() * 30 - 15), f.spr.y - f.spr.displayHeight / 3, text, { fontFamily: '"Pixelify Sans", sans-serif', fontSize: big ? '30px' : '22px', color, stroke: '#000', strokeThickness: 5 }).setOrigin(0.5).setDepth(70);
+    const t = this.add.text(f.spr.x + (Math.random() * 30 - 15), this.cy(f) - f.spr.displayHeight / 3, text, { fontFamily: '"Pixelify Sans", sans-serif', fontSize: big ? '30px' : '22px', color, stroke: '#000', strokeThickness: 5 }).setOrigin(0.5).setDepth(70);
     this.tweens.add({ targets: t, y: t.y - 50, alpha: 0, duration: 1100, ease: 'Cubic.easeOut', onComplete: () => t.destroy() });
   }
 
@@ -258,7 +270,7 @@ export class BattleScene extends Phaser.Scene {
   showSel(): void {
     const f = this.selList[this.selIdx];
     if (!f) return;
-    this.selArrow.setVisible(true).setPosition(f.spr.x, f.spr.y - f.spr.displayHeight / 2 - 30);
+    this.selArrow.setVisible(true).setPosition(f.spr.x, this.cy(f) - f.spr.displayHeight / 2 - 26);
   }
   confirmSel(): void { if (this.selecting) this.selecting(this.selList[this.selIdx]); }
   pickTarget(f: Fighter): void { if (this.selecting && this.selList.includes(f)) this.selecting(f); }
@@ -322,7 +334,7 @@ export class BattleScene extends Phaser.Scene {
       const done = () => { this.menuEl.style.display = 'none'; this.subEl?.remove(); this.subEl = null; this.menuKeys = {}; resolve(); };
       const show = () => {
         clear(this.menuEl); this.menuEl.style.display = 'block'; this.subEl?.remove(); this.subEl = null;
-        this.menuEl.appendChild(h('div', { class: 'who' }, `${m.name} ist am Zug`));
+        this.menuEl.appendChild(h('div', { class: 'who row' }, h('span', { class: 'grow' }, `${m.name} ist am Zug`), h('span', { class: 'dim', style: 'font-size:11.5px' }, 'Angriff: Leertaste drücken, wenn sich der Ring schließt = Präziser Treffer')));
         const acts: [string, () => void][] = [
           ['Angriff', async () => { const t = await this.chooseEnemy(); if (!t) return show(); this.menuEl.style.display = 'none'; await this.doAttack(f, t); done(); }],
           ['Technik', () => this.techMenu(f, show, done)],
@@ -335,7 +347,6 @@ export class BattleScene extends Phaser.Scene {
         const AI = ['sword', 'star', 'staff', 'bag', 'shield', 'boot'];
         const grid = h('div', { class: 'grid' }, ...acts.map(([l, fn], i) => { this.menuKeys[String(i + 1)] = fn; const b = btn(`${l}`, fn); b.style.justifyContent = 'flex-start'; b.prepend(ico(AI[i], 20)); b.appendChild(h('span', { class: 'dim', style: 'margin-left:auto;font-size:11px' }, String(i + 1))); return b; }));
         this.menuEl.appendChild(grid);
-        this.menuEl.appendChild(h('div', { class: 'dim', style: 'font-size:11.5px;margin-top:6px' }, 'Angriff: Leertaste, wenn sich der Ring schließt = Präziser Treffer.'));
       };
       show();
     });
@@ -473,7 +484,7 @@ export class BattleScene extends Phaser.Scene {
     const col = Phaser.Display.Color.HexStringToColor(EL_COLOR[els[0]]).color;
     await this.tweenTo(f.spr, { x: f.hx + 20 }, 150);
     for (const t of targets) {
-      const p = this.add.particles(t.spr.x, t.spr.y, 'glow', { speed: { min: 40, max: 160 }, scale: { start: 0.8, end: 0 }, lifespan: 600, quantity: 18, tint: els.map((e) => Phaser.Display.Color.HexStringToColor(EL_COLOR[e]).color), emitting: false }).setDepth(50);
+      const p = this.add.particles(t.spr.x, this.cy(t), 'glow', { speed: { min: 40, max: 160 }, scale: { start: 0.8, end: 0 }, lifespan: 600, quantity: 18, tint: els.map((e) => Phaser.Display.Color.HexStringToColor(EL_COLOR[e]).color), emitting: false }).setDepth(50);
       p.explode(22);
       this.time.delayedCall(800, () => p.destroy());
     }
@@ -526,7 +537,7 @@ export class BattleScene extends Phaser.Scene {
   async attackTiming(t: Fighter): Promise<boolean> {
     const now = this.time.now;
     const dur = 700;
-    this.qte = { x: t.spr.x, y: t.spr.y, t0: now, t1: now + dur, color: 0xffffff, r0: 70 };
+    this.qte = { x: t.spr.x, y: this.cy(t), t0: now, t1: now + dur, color: 0xffffff, r0: 70 };
     const startLen = this.pressLog.length;
     await this.wait(dur + 120);
     this.qte = null;
@@ -663,7 +674,7 @@ export class BattleScene extends Phaser.Scene {
     const targets = atk.target === 'all' ? this.partyAlive() : [taunt ?? Phaser.Utils.Array.GetRandom(this.partyAlive())];
     if (!targets.length) return;
     const main = targets[0];
-    const fx = atk.target === 'all' ? 230 : main.spr.x, fy = atk.target === 'all' ? 335 : main.spr.y;
+    const fx = atk.target === 'all' ? 230 : main.spr.x, fy = atk.target === 'all' ? 360 : this.cy(main);
     // Anlauf
     await this.tweenTo(f.spr, { x: Math.max(fx + 150, f.spr.x - 140) }, 240);
     let allParried = atk.hits > 0;
@@ -701,7 +712,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   sparks(t: Fighter, tint: number): void {
-    const p = this.add.particles(t.spr.x + 30, t.spr.y - 10, 'px', { speed: { min: 80, max: 260 }, lifespan: 300, scale: { start: 1.2, end: 0 }, tint, emitting: false }).setDepth(55);
+    const p = this.add.particles(t.spr.x + 30, this.cy(t), 'px', { speed: { min: 80, max: 260 }, lifespan: 300, scale: { start: 1.2, end: 0 }, tint, emitting: false }).setDepth(55);
     p.explode(16); this.time.delayedCall(500, () => p.destroy());
   }
 
@@ -730,11 +741,12 @@ export class BattleScene extends Phaser.Scene {
     const n = 1 + (Math.random() < 0.5 ? 1 : 0);
     for (let i = 0; i < n; i++) {
       const def = MONSTERS.kreidekriecher;
-      const x = 560 + Math.random() * 80, y = 380 + i * 60;
-      const spr = this.add.image(f.spr.x, f.spr.y + 40, def.sprite).setScale(3).setDepth(25);
+      const x = 560 + Math.random() * 60, y = 420 + i * 42;
+      const spr = this.add.image(f.spr.x - 60, f.spr.y, def.sprite).setScale(3).setOrigin(0.5, 1).setDepth(y / 10);
       const nf = this.addFighter({ side: 'e', name: def.name, mdef: def, hp: def.hp, maxHp: def.hp, atk: def.atk, def: def.def, mag: def.mag, spd: def.spd, spr, hx: x, hy: y, scale: 3 });
       nf.next = f.next + 5;
       nf.barG = this.add.graphics().setDepth(45);
+      this.shadows.push({ f: nf, sh: this.add.ellipse(x, y, 70, 15, 0x05060b, 0.45).setDepth(y / 10 - 0.5) });
       nf.label = this.add.text(x, 0, def.name, { fontFamily: '"Pixelify Sans", sans-serif', fontSize: '13px', color: '#f0e2c0', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(45);
       spr.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.pickTarget(nf));
       this.tweens.add({ targets: spr, x, y, duration: 500 });
@@ -782,6 +794,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   update(): void {
+    for (const { f, sh } of this.shadows) { sh.x = f.spr.x; sh.setAlpha(f.alive ? 0.45 * Math.min(1, f.spr.alpha + 0.2) : 0.15); }
     this.ringG.clear();
     if (this.qte) {
       const q = this.qte;

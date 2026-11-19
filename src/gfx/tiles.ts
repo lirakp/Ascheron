@@ -6,12 +6,13 @@ export const T = {
   PLANK: 20, RUIN: 21, DFLOOR: 22, DWALL: 23, CFLOOR: 24, CWALL: 25, SWATER: 26, SFLOOR: 27, EXIT: 28, SAFE: 29,
   BENCH: 30, WINDOW: 31, CHURCHWALL: 32, WELL: 33, FLOWER: 34, TREE: 35, ROOF_B: 36, BLOOD: 37, STAIRS: 38, FENCE: 39,
   STALL: 40, DTOP: 41, CTOP: 42, SIGN: 43, DEEPSEA: 44, BONES: 45, PLATFORM: 46, LADDER: 47, TOWERBG: 48, CHAIN: 49, LAMP: 50,
+  DWALL_MOSS: 51, DWALL_CRACK: 52, TORCH: 53, DFLOOR_CRACK: 54, PUDDLE: 55, RUBBLE: 56, CWALL_FOSSIL: 57, CFLOOR_CRACK: 58, PIPE: 59, COBWEB: 60, BANNER: 61,
 } as const;
-export const TILE_COUNT = 51;
+export const TILE_COUNT = 62;
 
 const SOLID = new Set<number>([T.BOG, T.SEA, T.DEADTREE, T.ROCK, T.WALL, T.PALISADE, T.ROOF_R, T.ROOF_G, T.HWALL, T.DOOR, T.CHALKROCK,
   T.ENTRANCE, T.GRATE, T.RUIN, T.DWALL, T.CWALL, T.SWATER, T.BENCH, T.WINDOW, T.CHURCHWALL, T.WELL, T.TREE, T.ROOF_B, T.FENCE, T.STALL,
-  T.DTOP, T.CTOP, T.SIGN, T.DEEPSEA, T.STAIRS, T.EXIT, T.LAMP]);
+  T.DTOP, T.CTOP, T.SIGN, T.DEEPSEA, T.STAIRS, T.EXIT, T.LAMP, T.DWALL_MOSS, T.DWALL_CRACK, T.TORCH, T.CWALL_FOSSIL, T.PIPE, T.BANNER, T.RUBBLE]);
 export const isSolid = (t: number) => SOLID.has(t);
 
 type TD = (p: PB) => void;
@@ -109,6 +110,17 @@ const D: Record<number, TD> = {
   [T.LADDER]: (p) => { p.rect(3, 0, 2, 16, C.wood); p.rect(11, 0, 2, 16, C.wood); p.rect(3, 0, 1, 16, C.woodL); p.rect(11, 0, 1, 16, C.woodL); for (let y = 2; y < 16; y += 5) { p.rect(3, y, 10, 2, C.woodL); p.rect(3, y + 1, 10, 1, C.woodD); } },
   [T.TOWERBG]: (p) => bricks(p, '#24262f', '#181a21', '#2c2f3a'),
   [T.CHAIN]: (p) => { D[T.TOWERBG](p); for (let y = 0; y < 16; y += 4) { p.rect(7, y, 2, 3, '#d8d0bc'); p.set(7, y, '#f0ead8'); p.set(8, y + 2, '#a8a090'); } },
+  [T.DWALL_MOSS]: (p) => { D[T.DWALL](p); for (const [x, y, w] of [[1, 0, 5], [2, 1, 3], [9, 0, 6], [11, 1, 3], [12, 2, 1], [3, 2, 1]]) p.rect(x, y, w, 1, '#4a7a3e'); p.set(4, 3, '#4a7a3e'); p.set(13, 3, '#3a6432'); p.set(5, 9, '#4a7a3e'); p.set(6, 9, '#3a6432'); },
+  [T.DWALL_CRACK]: (p) => { D[T.DWALL](p); p.line(5, 1, 7, 5, '#1a1c26'); p.line(7, 5, 6, 9, '#1a1c26'); p.line(7, 5, 10, 7, '#1a1c26'); p.set(8, 5, '#7a7e92'); },
+  [T.TORCH]: (p) => { D[T.DWALL](p); obj(p, (o) => { o.rect(7, 7, 2, 6, '#6a4a30'); o.rect(6, 6, 4, 2, '#3a3e4a'); o.rect(6, 2, 4, 4, '#f08a2a'); o.rect(7, 1, 2, 2, '#f8d050'); }, 0.35, 0.2); p.set(7, 3, '#fff2b0'); },
+  [T.BANNER]: (p) => { D[T.DWALL](p); obj(p, (o) => { o.rect(3, 1, 10, 1, '#3a3e4a'); o.rect(4, 2, 8, 9, '#7a2a30'); o.set(4, 11, '#7a2a30'); o.set(11, 11, '#7a2a30'); o.rect(5, 11, 6, 1, '#7a2a30'); o.rect(7, 4, 2, 4, '#d8b050'); o.rect(6, 5, 4, 1, '#d8b050'); }, 0.25, 0.3); },
+  [T.DFLOOR_CRACK]: (p) => { D[T.DFLOOR](p); p.line(2, 3, 6, 6, '#22242e'); p.line(6, 6, 5, 11, '#22242e'); p.line(6, 6, 11, 8, '#22242e'); p.set(10, 12, '#56596a'); p.set(3, 13, '#56596a'); },
+  [T.PUDDLE]: (p) => { D[T.DFLOOR](p); p.ellipse(8, 9, 6, 3.5, '#22344a'); p.ellipse(7, 8, 4, 2, '#2c4460'); p.rect(5, 8, 3, 1, '#5a7aa0'); p.set(11, 10, '#5a7aa0'); },
+  [T.RUBBLE]: (p) => { D[T.DFLOOR](p); obj(p, (o) => { o.ellipse(5, 10, 3.5, 2.5, '#6a6e7e'); o.ellipse(11, 9, 3, 2.5, '#5e6272'); o.ellipse(8, 5, 2.5, 2, '#727688'); o.ellipse(9, 12, 2, 1.5, '#5e6272'); }, 0.3, 0.3); },
+  [T.CWALL_FOSSIL]: (p) => { D[T.CWALL](p); p.ellipse(8, 6, 3.5, 3.5, '#b8b09e'); p.ellipse(8, 6, 2, 2, '#d8d2c4'); p.set(8, 6, '#a39a88'); p.line(4, 10, 12, 11, '#c0b8a6'); },
+  [T.CFLOOR_CRACK]: (p) => { D[T.CFLOOR](p); p.line(3, 2, 7, 7, '#948c78'); p.line(7, 7, 12, 9, '#948c78'); p.rect(10, 12, 2, 1, '#d8d2c4'); },
+  [T.PIPE]: (p) => { D[T.DWALL](p); obj(p, (o) => { o.ellipse(8, 8, 5.5, 5.5, '#6a5a3a'); }, 0.3, 0.3); p.ellipse(8, 8, 3.5, 3.5, '#0c0e10'); p.rect(7, 11, 2, 5, '#3f6a4e'); p.set(7, 13, '#5a9070'); },
+  [T.COBWEB]: (p) => { D[T.DFLOOR](p); for (let i = 0; i < 9; i++) { p.set(i, 0, '#b8bcc8'); p.set(0, i, '#b8bcc8'); p.set(i, i, '#9a9eac'); } p.line(0, 5, 5, 0, '#9a9eac'); p.line(0, 8, 8, 0, '#8a8e9c'); },
   [T.LAMP]: (p) => { cobble(p); obj(p, (o) => { o.rect(7, 5, 2, 11, '#2a2e3a'); o.rect(5, 1, 6, 5, '#2a2e3a'); }); p.rect(6, 2, 4, 3, '#f8d068'); p.rect(6, 2, 4, 1, '#fff2b0'); },
 };
 

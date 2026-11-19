@@ -91,8 +91,54 @@ const BG: Record<string, (c: Ctx) => void> = {
   },
 };
 
-export function battleBg(kind: string): HTMLCanvasElement {
+// Perspektivischer Kampfboden: Platten mit Fugen, die zum Fluchtpunkt laufen.
+const FLOOR: Record<string, { base: string; alt: string; line: string; lip: string; light: string; edge?: string }> = {
+  moor: { base: '#6a5a44', alt: '#61523e', line: '#463a2c', lip: '#2e261c', light: '#8a7658', edge: '#577a48' },
+  blut: { base: '#5a3030', alt: '#522a2a', line: '#3a1a1c', lip: '#200c0e', light: '#7a4440', edge: '#5a2a2a' },
+  sewer: { base: '#4a544c', alt: '#434d45', line: '#2c332d', lip: '#161c18', light: '#66726a' },
+  chalk: { base: '#c8c0ae', alt: '#bdb5a2', line: '#9a927e', lip: '#6a6458', light: '#e2dccc' },
+  stone: { base: '#4e5262', alt: '#474b5a', line: '#2d2f3b', lip: '#16171f', light: '#6a6e82' },
+  tower: { base: '#3e4252', alt: '#383c4b', line: '#23252f', lip: '#101118', light: '#585c70' },
+};
+function floor(c: Ctx, kind: string): void {
+  const f = FLOOR[kind] ?? FLOOR.stone;
+  const y0 = 104, y1 = 180, vx = 160, vy = 20;
+  // Zeilenhöhen wachsen nach vorn (Perspektive)
+  const rows: number[] = [y0];
+  let h = 5;
+  while (rows[rows.length - 1] < y1) { rows.push(Math.min(y1, rows[rows.length - 1] + h)); h = Math.round(h * 1.35); }
+  for (let r = 0; r < rows.length - 1; r++) {
+    const ya = rows[r], yb = rows[r + 1];
+    for (let y = ya; y < yb; y++) {
+      // x-Position der Fugen auf dieser Höhe
+      const t = (y - vy) / (y0 - vy);
+      for (let x = 0; x < 320; x++) {
+        const u = (x - vx) / t;
+        const col = Math.floor((u + 1000) / 36);
+        const ofs = r % 2 ? 0.5 : 0;
+        const cc = Math.floor((u + 1000) / 36 + ofs);
+        const seam = Math.abs(((u + 1000) / 36 + ofs) - Math.round((u + 1000) / 36 + ofs)) * 36 * t < 0.6;
+        let color = (cc + r) % 2 ? f.base : f.alt;
+        if (y === ya) color = f.light;
+        if (y === yb - 1) color = f.line;
+        if (seam) color = f.line;
+        c.fillStyle = color; c.fillRect(x, y, 1, 1);
+        void col;
+      }
+    }
+  }
+  // Vorderkante oben (Lippe) und Rand
+  R(c, 0, y0 - 2, 320, 2, f.lip);
+  if (f.edge) for (let x = 0; x < 320; x += 6) { R(c, x, y0 - 3, 2, 2, f.edge); R(c, x + 3, y0 - 2, 1, 1, f.edge); }
+  // Risse und Steinchen als Details
+  for (const [x, y, w] of [[40, 128, 6], [212, 141, 8], [120, 160, 7], [280, 120, 5], [76, 172, 9]]) { R(c, x, y, w, 1, f.line); R(c, x + w - 1, y + 1, 3, 1, f.line); }
+  // Vignette nach unten zu den Rändern
+  c.fillStyle = 'rgba(5,6,11,0.25)'; c.fillRect(0, 172, 320, 8);
+}
+
+export function battleBg(kind: string, withFloor = true): HTMLCanvasElement {
   const [cv, ctx] = canvas(320, 180);
   (BG[kind] ?? BG.moor)(ctx);
+  if (withFloor) floor(ctx, kind);
   return cv;
 }

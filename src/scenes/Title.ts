@@ -8,8 +8,8 @@ import { battleBg } from '../gfx/backgrounds';
 export class TitleScene extends Phaser.Scene {
   constructor() { super('Title'); }
   create(): void {
-    if (!this.textures.exists('bg_moor')) this.textures.addCanvas('bg_moor', battleBg('moor'));
-    this.add.image(0, 0, 'bg_moor').setOrigin(0).setScale(3);
+    if (!this.textures.exists('bg_title')) this.textures.addCanvas('bg_title', battleBg('moor', false));
+    this.add.image(0, 0, 'bg_title').setOrigin(0).setScale(3);
     this.add.rectangle(0, 0, 960, 540, 0x070a14, 0.35).setOrigin(0);
     // Nebel
     const fog = this.add.particles(0, 0, 'px', {
