@@ -1,6 +1,7 @@
 import { G, stats, money, maxMp2, isHalf } from '../core/state';
 import { dateStr } from '../data/world';
 import { h, UI, bar, clear } from './dom';
+import { ico } from '../gfx/icons';
 
 let root: HTMLElement | null = null;
 let loc = '';
@@ -22,9 +23,9 @@ export function updateHud(): void {
       h('div', { class: 'hud-chip' }, loc),
       G.blutmond > 0 ? h('div', { class: 'hud-chip blut' }, `☾ Blutmond (${G.blutmond} Tage)`) : null),
     h('div', { class: 'row' },
-      h('div', { class: 'hud-chip' }, `Rang ${G.advRank}`),
-      h('div', { class: 'hud-chip gold' }, money(G.silver)),
-      h('div', { class: 'hud-chip' }, `Proviant ${G.inv.proviant ?? 0}`)));
+      h('div', { class: 'hud-chip' }, ico('plakette'), `Rang ${G.advRank}`),
+      h('div', { class: 'hud-chip gold' }, ico('coin'), money(G.silver)),
+      h('div', { class: 'hud-chip' }, ico('bread'), `${G.inv.proviant ?? 0}`)));
   const party = h('div', { class: 'hud-party' }, ...G.party.map((m) => {
     const s = stats(m);
     return h('div', { class: 'pcard' },

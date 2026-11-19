@@ -10,6 +10,7 @@ import { gearRow } from './menu';
 import { updateHud } from './hud';
 import { SFX } from '../core/sfx';
 import { charPortrait } from '../gfx/chars';
+import { slot, ico, ITEM_ICON, gearIcon } from '../gfx/icons';
 
 export interface ServiceCtx { onEvents: (ev: WorldEvent[]) => void; }
 
@@ -39,8 +40,8 @@ function tabbed(title: string, sub: string, tabs: [string, (el: HTMLElement, rr:
 function bookBuy(el: El, rr: () => void, price: number): HTMLElement {
   const b = ELEMENT_BOOKS[el];
   const learners = G.party.filter((m) => !m.elements.includes(el));
-  return h('div', { class: 'item' },
-    h('span', { class: 'name' }, b.name, ' ', h('span', { style: `color:${EL_COLOR[el]}` }, `(${EL_NAME[el]})`)),
+  return h('div', { class: 'item' }, slot(el === 'licht' ? 'book_light' : el === 'schatten' ? 'book_dark' : 'book'),
+    h('span', { class: 'name' }, b.name, ' ', h('span', { style: `color:${EL_COLOR[el]}` }, ico(el, 16), ` ${EL_NAME[el]}`)),
     h('span', { class: 'gold' }, money(price)),
     ...(learners.length ? learners.map((m) => btn(`${m.name.split(' ')[0]} lernt`, () => { if (pay(price)) { m.elements.push(el); toast(`${m.name} beherrscht nun ${EL_NAME[el]}.`, 'big'); SFX.magic(); rr(); } }, { cls: 'small' })) : [h('span', { class: 'dim' }, 'alle kennen es')]));
 }
@@ -167,7 +168,7 @@ function kirche(ctx: ServiceCtx): void {
       for (const m of learners) {
         const free = m.cls === 'kleriker';
         const price = free ? 0 : 160;
-        l.appendChild(h('div', { class: 'item' }, h('span', { class: 'name' }, `${ELEMENT_BOOKS.licht.name} für ${m.name}`), btn(free ? 'Leihen' : `Spenden (${money(price)})`, () => { if (pay(price)) { m.elements.push('licht'); SFX.magic(); toast(`${m.name} beherrscht nun Licht.`, 'big'); rr(); } }, { cls: 'small' })));
+        l.appendChild(h('div', { class: 'item' }, slot('book_light'), h('span', { class: 'name' }, `${ELEMENT_BOOKS.licht.name} für ${m.name}`), btn(free ? 'Leihen' : `Spenden (${money(price)})`, () => { if (pay(price)) { m.elements.push('licht'); SFX.magic(); toast(`${m.name} beherrscht nun Licht.`, 'big'); rr(); } }, { cls: 'small' })));
       }
       if (!learners.length) l.appendChild(h('div', { class: 'dim' }, 'Alle im Trupp kennen das Licht.'));
       el.appendChild(l);
@@ -192,7 +193,7 @@ function konsortium(): void {
       for (const id of mats) {
         const unit = Math.max(1, Math.round(ITEMS[id].price * 0.98));
         total += unit * G.inv[id];
-        l.appendChild(h('div', { class: 'item' }, h('span', { class: 'name' }, `${itemName(id)} ×${G.inv[id]}`), h('span', { class: 'gold' }, `je ${money(unit)}`),
+        l.appendChild(h('div', { class: 'item' }, slot(ITEM_ICON[id] ?? 'bag'), h('span', { class: 'name' }, `${itemName(id)} ×${G.inv[id]}`), h('span', { class: 'gold' }, `je ${money(unit)}`),
           btn('1 verkaufen', () => { G.silver += unit; addItem(id, -1); SFX.coin(); rr(); }, { cls: 'small' }),
           btn('alle', () => { G.silver += unit * G.inv[id]; delete G.inv[id]; SFX.coin(); rr(); }, { cls: 'small' })));
       }
@@ -221,7 +222,7 @@ function haendler(): void {
       const l = h('div', { class: 'list' });
       for (const id of ['proviant', 'heiltrank', 'heiltrank2', 'manatrank', 'kraeuterbund', 'riechsalz']) {
         const d = ITEMS[id]; const pr = priceFor(d.price);
-        l.appendChild(h('div', { class: 'item' }, h('span', { class: 'name' }, d.name, h('span', { class: 'tag' }, `hast ${G.inv[id] ?? 0}`)), h('span', { class: 'dim', style: 'font-size:12px' }, d.desc), h('span', { class: 'gold' }, money(pr)),
+        l.appendChild(h('div', { class: 'item' }, slot(ITEM_ICON[id] ?? 'bag'), h('span', { class: 'name' }, d.name, h('span', { class: 'tag' }, `hast ${G.inv[id] ?? 0}`)), h('span', { class: 'dim', style: 'font-size:12px' }, d.desc), h('span', { class: 'gold' }, money(pr)),
           btn('Kaufen', () => { if (pay(pr)) { addItem(id); rr(); } }, { cls: 'small' }),
           id === 'proviant' ? btn('×10', () => { if (pay(pr * 10)) { addItem(id, 10); rr(); } }, { cls: 'small' }) : null));
       }
@@ -232,7 +233,7 @@ function haendler(): void {
       for (const d of Object.values(GEAR)) {
         if (d.rank === 'B' && !rankAtLeast(G.advRank, 'B')) continue;
         const pr = Math.round(priceFor(d.price) * (dwarf ? 0.9 : 1));
-        l.appendChild(h('div', { class: 'item' }, h('span', { class: 'name' }, d.name, h('span', { class: 'tag' }, `${d.slot === 'weapon' ? 'Waffe' : d.slot === 'armor' ? 'Rüstung' : 'Talisman'} · ${d.rank}`)), h('span', { class: 'dim', style: 'font-size:12px' }, statLine(d.stats!)), h('span', { class: 'gold' }, money(pr)),
+        l.appendChild(h('div', { class: 'item' }, slot(gearIcon(d.id, d.slot!, d.name)), h('span', { class: 'name' }, d.name, h('span', { class: 'tag' }, `${d.slot === 'weapon' ? 'Waffe' : d.slot === 'armor' ? 'Rüstung' : 'Talisman'} · ${d.rank}`)), h('span', { class: 'dim', style: 'font-size:12px' }, statLine(d.stats!)), h('span', { class: 'gold' }, money(pr)),
           btn('Kaufen', () => { if (pay(pr)) { G.gear.push(gearDefToInst(d.id, newUid())); toast(`${d.name} gekauft – im Menü (Esc) anlegen.`); rr(); } }, { cls: 'small' })));
       }
       el.appendChild(l);
@@ -310,7 +311,7 @@ function muenze(): void {
       for (const o of muenzeOffers()) {
         const owned = G.gear.some((g) => g.uid === o.uid);
         const price = 220;
-        l.appendChild(h('div', { class: 'item' }, h('span', { class: 'name' }, o.name, h('span', { class: 'tag blood' }, `Tribut: ${o.tribut!.amount} ${o.tribut!.kind === 'blut' ? 'LP' : 'Mana'}`)), h('span', { class: 'dim', style: 'font-size:12px' }, statLine(o.stats) + (o.curse ? ' · ???' : '')),
+        l.appendChild(h('div', { class: 'item' }, slot(gearIcon(o.def, o.slot, o.name)), h('span', { class: 'name' }, o.name, h('span', { class: 'tag blood' }, `Tribut: ${o.tribut!.amount} ${o.tribut!.kind === 'blut' ? 'LP' : 'Mana'}`)), h('span', { class: 'dim', style: 'font-size:12px' }, statLine(o.stats) + (o.curse ? ' · ???' : '')),
           owned ? h('span', { class: 'dim' }, 'gekauft') : btn(money(price), () => { if (pay(price)) { G.gear.push(o); G.rep.muenze++; toast(o.curse ? `${o.name} gekauft. Etwas daran fühlt sich falsch an… (${o.curse})` : `${o.name} gekauft.`, o.curse ? 'bad' : 'big', 4000); rr(); } }, { cls: 'small' })));
       }
       el.appendChild(l);

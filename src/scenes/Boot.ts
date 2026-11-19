@@ -1,11 +1,19 @@
 import Phaser from 'phaser';
 import { tilesetCanvas } from '../gfx/tiles';
 import { MONSTER_DRAWERS, monsterCanvas } from '../gfx/monsters';
-import { canvas } from '../gfx/pixel';
+import { canvas, PB } from '../gfx/pixel';
+import { iconCanvas } from '../gfx/icons';
 
 export class BootScene extends Phaser.Scene {
   constructor() { super('Boot'); }
   create(): void {
+    // Pixel-Schrift laden (mit Zeitlimit, falls offline)
+    const fonts = (document as Document & { fonts?: FontFaceSet }).fonts;
+    const ready = fonts ? Promise.race([Promise.all([fonts.load('16px "Pixelify Sans"'), fonts.load('700 16px "Pixelify Sans"')]), new Promise((r) => setTimeout(r, 1500))]) : Promise.resolve();
+    void ready.then(() => this.build(), () => this.build());
+  }
+
+  build(): void {
     this.textures.addCanvas('tiles', tilesetCanvas());
     for (const k of Object.keys(MONSTER_DRAWERS)) this.textures.addCanvas(k, monsterCanvas(k));
     // kleine Effekt-Texturen
@@ -19,24 +27,17 @@ export class BootScene extends Phaser.Scene {
     vg.addColorStop(0, 'rgba(0,0,0,0)'); vg.addColorStop(0.6, 'rgba(0,0,0,0.45)'); vg.addColorStop(1, 'rgba(0,0,0,0.96)');
     vctx.fillStyle = vg; vctx.fillRect(0, 0, 1024, 768);
     this.textures.addCanvas('vision', v);
-    // Truhe
-    const [ch, cctx] = canvas(14, 12);
-    cctx.fillStyle = '#140f0b'; cctx.fillRect(0, 1, 14, 11);
-    cctx.fillStyle = '#7a5230'; cctx.fillRect(1, 2, 12, 9);
-    cctx.fillStyle = '#5a3a20'; cctx.fillRect(1, 5, 12, 1);
-    cctx.fillStyle = '#d8b060'; cctx.fillRect(6, 5, 2, 3);
-    this.textures.addCanvas('chest', ch);
-    const [cho, coctx] = canvas(14, 12);
-    coctx.fillStyle = '#140f0b'; coctx.fillRect(0, 3, 14, 9);
-    coctx.fillStyle = '#3a2410'; coctx.fillRect(1, 4, 12, 3);
-    coctx.fillStyle = '#7a5230'; coctx.fillRect(1, 7, 12, 4);
-    this.textures.addCanvas('chest_open', cho);
-    // Moorkraut
-    const [hb, hctx] = canvas(10, 10);
-    hctx.fillStyle = '#2a4020'; hctx.fillRect(4, 4, 2, 6);
-    hctx.fillStyle = '#7ab04a'; hctx.fillRect(1, 2, 3, 3); hctx.fillRect(6, 1, 3, 3); hctx.fillRect(3, 0, 3, 3);
-    hctx.fillStyle = '#c8d870'; hctx.fillRect(4, 1, 1, 1);
-    this.textures.addCanvas('herb', hb);
+    // Truhe (geschlossen/offen) und Moorkraut im Icon-Stil
+    const chest = (open: boolean) => {
+      const p = new PB(16, 14);
+      if (open) { p.rect(2, 3, 12, 3, '#3a2414'); p.rect(1, 6, 14, 7, '#9a6a3a'); p.rect(1, 8, 14, 1, '#c8a050'); }
+      else { p.rect(1, 2, 14, 11, '#9a6a3a'); p.rect(1, 6, 14, 1, '#c8a050'); p.rect(7, 5, 2, 3, '#f0c35a'); }
+      p.bevel(0.3, 0.3); p.outline('#0a0b12');
+      const [c, ctx] = canvas(16, 14); p.draw(ctx, 0, 0); return c;
+    };
+    this.textures.addCanvas('chest', chest(false));
+    this.textures.addCanvas('chest_open', chest(true));
+    this.textures.addCanvas('herb', iconCanvas('herb', 1));
     // Staub (Kreidekriecher-Hinweis)
     const [du, duc] = canvas(2, 2); duc.fillStyle = '#e8e3d8'; duc.fillRect(0, 0, 2, 2); this.textures.addCanvas('dust', du);
     this.scene.start('Title');

@@ -60,7 +60,7 @@ export class WorldScene extends Phaser.Scene {
     this.layer.setCollision(solid);
 
     for (const l of this.wm.labels) {
-      this.add.text(l.x * 16, l.y * 16, l.text, { fontFamily: 'Georgia, serif', fontSize: '5px', color: '#f0e2c0', stroke: '#000', strokeThickness: 1.5 }).setOrigin(0.5).setResolution(6).setDepth(5).setAlpha(0.9);
+      this.add.text(l.x * 16, l.y * 16, l.text, { fontFamily: '"Pixelify Sans", sans-serif', fontSize: '5px', color: '#f0e2c0', stroke: '#000', strokeThickness: 1.5 }).setOrigin(0.5).setResolution(6).setDepth(5).setAlpha(0.9);
     }
 
     ensureChar(this, 'player', G.party[0].app, true);

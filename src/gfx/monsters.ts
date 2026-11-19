@@ -7,7 +7,9 @@ const aschhund: Drawer = () => {
   const p = new PB(26, 17);
   const r = mulberry32(5);
   const skin = '#6e6660';
-  p.ellipse(14, 8, 8, 4, (x, y) => (r() < 0.25 ? '#8f877f' : y > 9 ? shade(skin, -0.2) : skin));
+  p.ellipse(14, 8, 8, 4, skin);
+  p.rect(10, 6, 3, 2, '#8f877f'); p.rect(16, 7, 2, 2, '#8f877f'); p.rect(19, 5, 2, 1, '#8f877f');
+  void r;
   // Kopf
   p.ellipse(5, 7, 4, 3, skin);
   p.rect(1, 8, 5, 2, '#4a4440');
@@ -73,14 +75,11 @@ const hohlmann: Drawer = () => {
 const kreidemutter: Drawer = () => {
   const p = new PB(72, 58);
   const r = mulberry32(9);
-  p.ellipse(36, 34, 33, 22, (x, y) => {
-    const n = r();
-    if (n < 0.06) return '#c98b86';
-    if (y > 46) return '#b8b0a2';
-    return n < 0.5 ? '#e8e3d8' : '#dcd5c6';
-  });
+  p.ellipse(36, 34, 33, 22, '#e8e3d8');
+  p.ellipse(36, 48, 28, 7, '#cfc6b4');
   // Fleischrisse
-  for (let i = 0; i < 9; i++) { const x = 10 + r() * 52, y = 20 + r() * 26; p.line(x, y, x + r() * 6 - 3, y + 4, '#b5655e'); }
+  for (const [x, y, dx] of [[16, 26, 3], [27, 34, -2], [40, 22, 2], [50, 36, -3], [58, 28, 2], [33, 44, 3], [22, 40, -2]]) p.line(x, y, x + dx, y + 5, '#b5655e');
+  void r;
   // Halb geborene Hohlmänner auf dem Rücken
   for (const hx of [18, 30, 44, 54]) { p.rect(hx, 9 + (hx % 3), 4, 6, '#7d7266'); p.set(hx + 1, 11 + (hx % 3), '#2a2420'); p.set(hx + 2, 11 + (hx % 3), '#2a2420'); p.rect(hx - 1, 15, 6, 3, '#d8d0c0'); }
   // Maulöffnung
@@ -133,7 +132,7 @@ const gloeckner: Drawer = () => {
   // Glocke statt Kopf
   for (let y = 48; y < 78; y++) {
     const w = 5 + (y - 48) * 0.55;
-    for (let x = 27 - w; x <= 27 + w; x++) p.set(x, y, x > 27 + w - 3 ? bronzeD : y > 74 ? bronzeD : (x + y) % 11 === 0 ? shade(bronze, 0.25) : bronze);
+    for (let x = 27 - w; x <= 27 + w; x++) p.set(x, y, y > 74 ? bronzeD : bronze);
   }
   p.rect(10, 76, 34, 3, bronzeD);
   return p;
@@ -153,12 +152,9 @@ const kloeppel: Drawer = () => {
 
 const blutgaenger: Drawer = () => {
   const p = new PB(18, 26);
-  const r = mulberry32(3);
-  const f = (x: number, y: number) => (r() < 0.3 ? '#d24a40' : y % 3 === 0 ? '#8a1e1a' : '#b02a24');
-  p.ellipse(9, 5, 4, 4, f);
+  p.ellipse(9, 5, 4, 4, '#b02a24');
   p.set(8, 3, '#2a0808'); p.set(10, 3, '#2a0808'); // Hinterkopf mit Mund -> Kopf nach hinten
   p.rect(5, 9, 8, 9, '#b02a24');
-  for (let y = 9; y < 18; y++) p.set(5 + (y % 2), y, '#d24a40');
   p.rect(3, 10, 2, 9, '#9a2420'); p.rect(13, 10, 2, 9, '#9a2420');
   p.rect(6, 18, 2, 7, '#8a1e1a'); p.rect(10, 18, 2, 7, '#8a1e1a');
   return p;
@@ -171,7 +167,8 @@ export const MONSTER_DRAWERS: Record<string, Drawer> = {
 
 export function monsterCanvas(key: string): HTMLCanvasElement {
   const pb = MONSTER_DRAWERS[key]();
-  pb.outline('#0d0907');
+  pb.bevel(0.28, 0.3);
+  pb.outline('#0a0b12');
   const [c, ctx] = canvas(pb.w, pb.h);
   pb.draw(ctx, 0, 0);
   return c;

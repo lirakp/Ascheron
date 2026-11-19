@@ -7,6 +7,8 @@ import { TECHS } from '../data/world';
 import { ITEMS } from '../data/items';
 import { resolveSpell, spellCost, EL_NAME, EL_COLOR, SpellDef, keyOf } from '../data/magic';
 import { ensureChar } from '../gfx/tex';
+import { battleBg } from '../gfx/backgrounds';
+import { ico, slot, ITEM_ICON } from '../gfx/icons';
 import { h, btn, UI, clear, bar, toast } from '../ui/dom';
 import { hideHud } from '../ui/hud';
 import { setEsc } from '../core/input';
@@ -76,7 +78,7 @@ export class BattleScene extends Phaser.Scene {
   create(): void {
     this.drawBackground(this.data_.bg);
     this.ringG = this.add.graphics().setDepth(40);
-    this.banner = this.add.text(480, 62, '', { fontFamily: 'Georgia, serif', fontSize: '20px', color: '#f0e2c0', stroke: '#000', strokeThickness: 5 }).setOrigin(0.5).setDepth(60);
+    this.banner = this.add.text(480, 62, '', { fontFamily: '"Pixelify Sans", sans-serif', fontSize: '20px', color: '#f0e2c0', stroke: '#000', strokeThickness: 5 }).setOrigin(0.5).setDepth(60);
     this.selArrow = this.add.text(0, 0, '▼', { fontSize: '22px', color: '#e0ad4a', stroke: '#000', strokeThickness: 4 }).setOrigin(0.5).setDepth(61).setVisible(false);
     this.tweens.add({ targets: this.selArrow, y: '+=6', yoyo: true, repeat: -1, duration: 300 });
 
@@ -123,7 +125,7 @@ export class BattleScene extends Phaser.Scene {
     for (const f of this.F) {
       if (f.side === 'e') {
         f.barG = this.add.graphics().setDepth(45);
-        f.label = this.add.text(f.hx, 0, f.name, { fontFamily: 'Georgia, serif', fontSize: '13px', color: '#f0e2c0', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(45);
+        f.label = this.add.text(f.hx, 0, f.name, { fontFamily: '"Pixelify Sans", sans-serif', fontSize: '13px', color: '#f0e2c0', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(45);
         f.spr.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.pickTarget(f));
       } else f.spr.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.pickTarget(f));
       f.next = (100 / Math.max(1, f.spd)) * (0.5 + Math.random() * 0.6);
@@ -163,29 +165,11 @@ export class BattleScene extends Phaser.Scene {
   }
 
   drawBackground(bg: string): void {
-    const g = this.add.graphics().setDepth(0);
-    const pal: Record<string, [number, number, number]> = {
-      moor: [0x1a2018, 0x2c3624, 0x3a4630], sewer: [0x0e140e, 0x1c241a, 0x2a3424], chalk: [0x2a2824, 0x8a8478, 0xb8b2a2],
-      stone: [0x121012, 0x24201e, 0x3a3430], tower: [0x0a0808, 0x1c1916, 0x2c2824], blut: [0x2a0606, 0x4a1010, 0x3a2020],
-    };
-    const [top, mid, ground] = pal[bg] ?? pal.moor;
-    const c1 = Phaser.Display.Color.IntegerToColor(top), c2 = Phaser.Display.Color.IntegerToColor(mid);
-    for (let y = 0; y < 330; y += 6) {
-      const c = Phaser.Display.Color.Interpolate.ColorWithColor(c1, c2, 330, y);
-      g.fillStyle(Phaser.Display.Color.GetColor(c.r, c.g, c.b), 1); g.fillRect(0, y, 960, 6);
-    }
-    g.fillStyle(ground, 1); g.fillRect(0, 330, 960, 210);
-    g.fillStyle(0x000000, 0.25); for (let i = 0; i < 18; i++) g.fillEllipse(Math.random() * 960, 340 + Math.random() * 190, 80 + Math.random() * 120, 10);
-    if (bg === 'moor' || bg === 'blut') {
-      g.fillStyle(bg === 'blut' ? 0xb02020 : 0xd8ccb0, bg === 'blut' ? 0.9 : 0.5); g.fillCircle(820, 90, 34);
-      g.fillStyle(0x0c0c0a, 1);
-      for (let i = 0; i < 9; i++) { const x = i * 120 + Math.random() * 40; g.fillRect(x, 230 - Math.random() * 40, 6, 110); g.fillTriangle(x - 20, 250, x + 3, 200, x + 26, 250); }
-      this.add.particles(0, 0, 'glow', { x: { min: 0, max: 960 }, y: { min: 300, max: 520 }, speedX: { min: -8, max: 8 }, scale: { min: 4, max: 8 }, alpha: { start: 0.07, end: 0 }, lifespan: 7000, frequency: 260, tint: bg === 'blut' ? 0xa02020 : 0xbab0a0 }).setDepth(5);
-    }
-    if (bg === 'sewer') { g.fillStyle(0x2e3a2a, 1); g.fillRect(0, 300, 960, 40); g.lineStyle(2, 0x0a0e0a, 1); for (let x = 0; x < 960; x += 48) g.strokeRect(x, 0, 48, 24); }
-    if (bg === 'chalk') { g.fillStyle(0xd8d2c4, 1); for (let i = 0; i < 6; i++) g.fillTriangle(i * 180, 330, i * 180 + 90, 150 + Math.random() * 60, i * 180 + 180, 330); this.add.particles(0, 0, 'dust', { x: { min: 0, max: 960 }, y: 0, speedY: { min: 10, max: 30 }, lifespan: 12000, frequency: 120, alpha: 0.6 }).setDepth(5); }
-    if (bg === 'stone' || bg === 'tower') { g.lineStyle(2, 0x000000, 0.5); for (let y = 0; y < 330; y += 30) for (let x = (y / 30) % 2 ? 0 : 30; x < 960; x += 60) g.strokeRect(x, y, 60, 30); }
-    if (bg === 'tower') { g.fillStyle(0xd8d0bc, 1); for (let y = 0; y < 120; y += 8) g.fillRect(718, y, 4, 5); }
+    const key = 'bg_' + bg;
+    if (!this.textures.exists(key)) this.textures.addCanvas(key, battleBg(bg));
+    this.add.image(0, 0, key).setOrigin(0).setScale(3).setDepth(0);
+    if (bg === 'moor' || bg === 'blut') this.add.particles(0, 0, 'px', { x: { min: 0, max: 960 }, y: { min: 340, max: 530 }, speedX: { min: -6, max: 6 }, speedY: { min: -4, max: -10 }, scale: 0.75, alpha: { start: 0.5, end: 0 }, lifespan: 4000, frequency: 300, tint: bg === 'blut' ? 0xff6a5a : 0xb0e070 }).setDepth(5);
+    if (bg === 'chalk') this.add.particles(0, 0, 'dust', { x: { min: 0, max: 960 }, y: 0, speedY: { min: 10, max: 30 }, lifespan: 12000, frequency: 120, alpha: 0.6, scale: 1.5 }).setDepth(5);
   }
 
   // ------------------------------------------------------------ UI
@@ -218,8 +202,11 @@ export class BattleScene extends Phaser.Scene {
       if (!f.alive) { f.label?.setVisible(false); continue; }
       const w = 90, x = f.spr.x - w / 2, top = f.spr.y - f.spr.displayHeight / 2 - 16;
       const y = Math.max(96, top);
-      f.barG.fillStyle(0x000000, 0.7).fillRect(x - 1, y - 1, w + 2, 7);
-      f.barG.fillStyle(f.st.verkrustet ? 0xd8d2c4 : 0xc83a30, 1).fillRect(x, y, w * Math.max(0, f.hp / f.maxHp), 5);
+      f.barG.fillStyle(0x03040a, 1).fillRect(x - 2, y - 2, w + 4, 10);
+      f.barG.fillStyle(0x1e253c, 1).fillRect(x, y, w, 6);
+      const fw = w * Math.max(0, f.hp / f.maxHp);
+      f.barG.fillStyle(f.st.verkrustet ? 0xd8d2c4 : 0xd8483c, 1).fillRect(x, y, fw, 6);
+      f.barG.fillStyle(0xffffff, 0.25).fillRect(x, y, fw, 1);
       const sts = Object.keys(f.st).filter((k) => f.st[k] > 0).map((k) => STATUS_NAME[k] ?? k);
       f.label?.setPosition(f.spr.x, y - 10).setText(f.name + (sts.length ? ' · ' + sts.join(', ') : ''));
     }
@@ -232,7 +219,7 @@ export class BattleScene extends Phaser.Scene {
   }
 
   float(f: Fighter, text: string, color: string, big = false): void {
-    const t = this.add.text(f.spr.x + (Math.random() * 30 - 15), f.spr.y - f.spr.displayHeight / 3, text, { fontFamily: 'Georgia, serif', fontSize: big ? '30px' : '22px', color, stroke: '#000', strokeThickness: 5 }).setOrigin(0.5).setDepth(70);
+    const t = this.add.text(f.spr.x + (Math.random() * 30 - 15), f.spr.y - f.spr.displayHeight / 3, text, { fontFamily: '"Pixelify Sans", sans-serif', fontSize: big ? '30px' : '22px', color, stroke: '#000', strokeThickness: 5 }).setOrigin(0.5).setDepth(70);
     this.tweens.add({ targets: t, y: t.y - 50, alpha: 0, duration: 1100, ease: 'Cubic.easeOut', onComplete: () => t.destroy() });
   }
 
@@ -345,7 +332,8 @@ export class BattleScene extends Phaser.Scene {
           ['Flucht', async () => { this.menuEl.style.display = 'none'; await this.tryFlee(); done(); }],
         ];
         this.menuKeys = {};
-        const grid = h('div', { class: 'grid' }, ...acts.map(([l, fn], i) => { this.menuKeys[String(i + 1)] = fn; return btn(`${i + 1} ${l}`, fn); }));
+        const AI = ['sword', 'star', 'staff', 'bag', 'shield', 'boot'];
+        const grid = h('div', { class: 'grid' }, ...acts.map(([l, fn], i) => { this.menuKeys[String(i + 1)] = fn; const b = btn(`${l}`, fn); b.style.justifyContent = 'flex-start'; b.prepend(ico(AI[i], 20)); b.appendChild(h('span', { class: 'dim', style: 'margin-left:auto;font-size:11px' }, String(i + 1))); return b; }));
         this.menuEl.appendChild(grid);
         this.menuEl.appendChild(h('div', { class: 'dim', style: 'font-size:11.5px;margin-top:6px' }, 'Angriff: Leertaste, wenn sich der Ring schließt = Präziser Treffer.'));
       };
@@ -392,7 +380,7 @@ export class BattleScene extends Phaser.Scene {
     if (!ids.length) body.appendChild(h('div', { class: 'dim' }, 'Keine Verbrauchsgüter.'));
     for (const id of ids) {
       const d = ITEMS[id];
-      body.appendChild(h('div', { class: 'row', style: 'padding:4px 0;border-bottom:1px solid var(--line2)' }, h('span', { class: 'grow' }, `${d.name} ×${G.inv[id]}`, h('div', { class: 'dim', style: 'font-size:12px' }, d.desc)),
+      body.appendChild(h('div', { class: 'row', style: 'padding:4px 0;border-bottom:1px solid var(--line2)' }, slot(ITEM_ICON[id] ?? 'bag', 30), h('span', { class: 'grow' }, `${d.name} ×${G.inv[id]}`, h('div', { class: 'dim', style: 'font-size:12px' }, d.desc)),
         btn('Benutzen', async () => {
           const list = this.F.filter((x) => x.side === 'p' && (d.revive ? !x.alive : x.alive));
           if (!list.length) { toast('Kein passendes Ziel.', 'bad'); return; }
@@ -420,7 +408,7 @@ export class BattleScene extends Phaser.Scene {
       body.appendChild(h('div', { class: 'dim', style: 'font-size:12px' }, `Wähle bis zu ${cap} Element(e). Mana: ${m.mp}${isHalf(m) ? ` · menschlicher Fluss: ${m.mp2}` : ''}`));
       body.appendChild(h('div', { class: 'row', style: 'flex-wrap:wrap;gap:4px;margin:6px 0' }, ...m.elements.map((e, i) => {
         const b = btn(`${i + 1} ${EL_NAME[e]}`, () => toggle(e), { cls: 'small elbtn ' + (sel.includes(e) ? 'sel' : '') });
-        b.style.color = EL_COLOR[e];
+        b.style.color = EL_COLOR[e]; b.prepend(ico(e, 16));
         return b;
       })));
       this.menuKeys = {}; m.elements.forEach((e, i) => { this.menuKeys[String(i + 1)] = () => toggle(e); });
@@ -747,7 +735,7 @@ export class BattleScene extends Phaser.Scene {
       const nf = this.addFighter({ side: 'e', name: def.name, mdef: def, hp: def.hp, maxHp: def.hp, atk: def.atk, def: def.def, mag: def.mag, spd: def.spd, spr, hx: x, hy: y, scale: 3 });
       nf.next = f.next + 5;
       nf.barG = this.add.graphics().setDepth(45);
-      nf.label = this.add.text(x, 0, def.name, { fontFamily: 'Georgia, serif', fontSize: '13px', color: '#f0e2c0', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(45);
+      nf.label = this.add.text(x, 0, def.name, { fontFamily: '"Pixelify Sans", sans-serif', fontSize: '13px', color: '#f0e2c0', stroke: '#000', strokeThickness: 3 }).setOrigin(0.5).setDepth(45);
       spr.setInteractive({ useHandCursor: true }).on('pointerdown', () => this.pickTarget(nf));
       this.tweens.add({ targets: spr, x, y, duration: 500 });
     }

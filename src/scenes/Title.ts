@@ -3,36 +3,23 @@ import { h, btn, UI, dialog } from '../ui/dom';
 import { openCreation } from '../ui/create';
 import { hasSave, load, newGame, save } from '../core/state';
 import { SFX } from '../core/sfx';
+import { battleBg } from '../gfx/backgrounds';
 
 export class TitleScene extends Phaser.Scene {
   constructor() { super('Title'); }
   create(): void {
-    const g = this.add.graphics();
-    // Himmel
-    for (let y = 0; y < 540; y += 4) {
-      const t = y / 540;
-      g.fillStyle(Phaser.Display.Color.GetColor(14 + t * 30, 12 + t * 16, 18 + t * 10), 1);
-      g.fillRect(0, y, 960, 4);
-    }
-    // Mond
-    g.fillStyle(0xd8c8a8, 0.12); g.fillCircle(700, 150, 90);
-    g.fillStyle(0xe8dcc0, 1); g.fillCircle(700, 150, 58);
-    g.fillStyle(0xcfc2a4, 1); g.fillCircle(680, 135, 10); g.fillCircle(720, 170, 7);
-    // Silhouette Krähenfurt
-    g.fillStyle(0x0a0807, 1);
-    const sil = [[0, 420], [80, 410], [120, 380], [140, 380], [140, 350], [160, 330], [180, 350], [180, 390], [260, 395], [300, 360], [330, 360], [330, 300], [345, 270], [360, 300], [360, 380], [420, 390], [470, 370], [520, 375], [560, 340], [600, 340], [600, 380], [700, 400], [780, 385], [860, 405], [960, 395], [960, 540], [0, 540]];
-    g.beginPath(); g.moveTo(sil[0][0], sil[0][1]); for (const [x, y] of sil) g.lineTo(x, y); g.closePath(); g.fillPath();
-    g.fillStyle(0x2a2016, 1);
-    for (const [x, y] of [[150, 360], [345, 300], [345, 320], [580, 355]]) g.fillRect(x, y, 4, 6);
+    if (!this.textures.exists('bg_moor')) this.textures.addCanvas('bg_moor', battleBg('moor'));
+    this.add.image(0, 0, 'bg_moor').setOrigin(0).setScale(3);
+    this.add.rectangle(0, 0, 960, 540, 0x070a14, 0.35).setOrigin(0);
     // Nebel
-    const fog = this.add.particles(0, 0, 'glow', {
-      x: { min: -100, max: 960 }, y: { min: 380, max: 540 }, speedX: { min: 6, max: 18 }, scale: { min: 3, max: 7 },
-      alpha: { start: 0.08, end: 0 }, lifespan: 9000, frequency: 220, tint: 0xbab0a0,
+    const fog = this.add.particles(0, 0, 'px', {
+      x: { min: -100, max: 960 }, y: { min: 380, max: 540 }, speedX: { min: 4, max: 12 }, speedY: { min: -6, max: -2 }, scale: 0.75,
+      alpha: { start: 0.6, end: 0 }, lifespan: 6000, frequency: 160, tint: 0xb0e070,
     });
     fog.setDepth(2);
     // Krähen
     for (let i = 0; i < 5; i++) {
-      const c = this.add.text(-40 - i * 70, 120 + i * 22, 'ᵛ', { fontSize: '18px', color: '#000' });
+      const c = this.add.text(-40 - i * 70, 120 + i * 22, 'v', { fontFamily: '"Pixelify Sans", sans-serif', fontSize: '16px', color: '#05060b' });
       this.tweens.add({ targets: c, x: 1000, y: c.y - 40, duration: 18000 + i * 2000, repeat: -1, delay: i * 1500 });
     }
     this.showMenu();

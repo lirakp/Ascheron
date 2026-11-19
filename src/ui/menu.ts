@@ -5,6 +5,7 @@ import { ITEMS, statLine } from '../data/items';
 import { EL_NAME, EL_COLOR, resolveSpell, STAGE_NAME } from '../data/magic';
 import { QUESTS, TECHS, CODEX, dateStr, queenDaysLeft, RANK_META } from '../data/world';
 import { charPortrait } from '../gfx/chars';
+import { slot, ico, ITEM_ICON, gearIcon } from '../gfx/icons';
 import { h, btn, openModal, clear, bar, toast } from './dom';
 import { toggleMute, SFX } from '../core/sfx';
 import { updateHud } from './hud';
@@ -30,14 +31,14 @@ export function openMenu(onTitle?: () => void, start: Tab = 'trupp'): void {
 export function memberCard(m: Member, rerender: () => void, opts: { equip?: boolean } = {}): HTMLElement {
   const s = stats(m);
   const race = RACES[m.app.race];
-  const eq = (slot: 'weapon' | 'armor' | 'trinket', label: string) => {
-    const cur = gearOf(m.equip[slot]);
-    const avail = G.gear.filter((g) => g.slot === slot && !g.sleeping && !G.party.some((p) => p !== m && p.equip[slot] === g.uid));
+  const eq = (slot_: 'weapon' | 'armor' | 'trinket', label: string) => {
+    const cur = gearOf(m.equip[slot_]);
+    const avail = G.gear.filter((g) => g.slot === slot_ && !g.sleeping && !G.party.some((p) => p !== m && p.equip[slot_] === g.uid));
     const sel = h('select', { style: 'font-family:inherit;background:#0f0c09;color:var(--text);border:1px solid var(--line);border-radius:3px;max-width:240px' }) as HTMLSelectElement;
     sel.appendChild(h('option', { value: '' }, '— nichts —'));
     for (const g of avail) { const o = h('option', { value: g.uid }, `${g.name}${g.tribut ? ' ⚠Tribut' : ''}${g.curse ? ' ☠' : ''}`) as HTMLOptionElement; if (cur?.uid === g.uid) o.selected = true; sel.appendChild(o); }
-    sel.addEventListener('change', () => { m.equip[slot] = sel.value || undefined; const s2 = stats(m); m.hp = Math.min(m.hp, s2.hp); m.mp = Math.min(m.mp, s2.mp); rerender(); });
-    return h('div', { class: 'row', style: 'font-size:13px' }, h('span', { class: 'dim', style: 'width:70px' }, label), opts.equip === false ? h('span', {}, cur?.name ?? '—') : sel, cur ? h('span', { class: 'dim', style: 'font-size:12px' }, statLine(cur.stats) + (cur.tribut ? ` · Tribut: ${cur.tribut.amount} ${cur.tribut.kind === 'blut' ? 'LP' : 'Mana'} je Angriff` : '') + (cur.curse ? ` · ${cur.curse}` : '')) : null);
+    sel.addEventListener('change', () => { m.equip[slot_] = sel.value || undefined; const s2 = stats(m); m.hp = Math.min(m.hp, s2.hp); m.mp = Math.min(m.mp, s2.mp); rerender(); });
+    return h('div', { class: 'row', style: 'font-size:13px' }, slot(cur ? gearIcon(cur.def, slot_, cur.name) : slot_ === 'weapon' ? 'sword' : slot_ === 'armor' ? 'armor' : 'ring', 28), h('span', { class: 'dim', style: 'width:64px' }, label), opts.equip === false ? h('span', {}, cur?.name ?? '—') : sel, cur ? h('span', { class: 'dim', style: 'font-size:12px' }, statLine(cur.stats) + (cur.tribut ? ` · Tribut: ${cur.tribut.amount} ${cur.tribut.kind === 'blut' ? 'LP' : 'Mana'} je Angriff` : '') + (cur.curse ? ` · ${cur.curse}` : '')) : null);
   };
   return h('div', { class: 'panel', style: 'padding:8px;margin-bottom:8px;display:flex;gap:10px' },
     charPortrait(m.app, 3, 0),
@@ -46,7 +47,7 @@ export function memberCard(m: Member, rerender: () => void, opts: { equip?: bool
       h('div', { style: 'font-size:12.5px' }, `LP ${m.hp}/${s.hp} · Mana ${m.mp}/${s.mp}${isHalf(m) ? ` · 2. Fluss ${m.mp2}/${maxMp2(m)}` : ''} · Angriff ${s.atk} · Vert. ${s.def} · Magie ${s.mag} · Tempo ${s.spd}`),
       h('div', { style: 'width:200px' }, bar('xp', m.xp, xpForLevel(m.level))),
       h('div', { style: 'font-size:12.5px' }, 'Mana-Rang ', h('b', { class: 'manac', style: 'font-weight:normal' }, race.mana2 ? `${race.mana2}+${race.mana}` : manaRank(m)), ` · verbindet bis zu ${maxElements(m)} Element(e) · Elemente: `,
-        ...m.elements.map((e) => h('span', { style: `color:${EL_COLOR[e]};margin-right:6px` }, EL_NAME[e]))),
+        ...m.elements.map((e) => h('span', { style: `color:${EL_COLOR[e]};margin-right:8px;white-space:nowrap` }, ico(e, 16), ' ', EL_NAME[e]))),
       h('div', { style: 'font-size:12.5px' }, 'Techniken: ', [race.tech, CLASSES[m.cls].tech].map((t) => `${TECHS[t].name} (${TECHS[t].ap} Schwung)`).join(', ')),
       eq('weapon', 'Waffe'), eq('armor', 'Rüstung'), eq('trinket', 'Talisman'),
       !m.isPlayer && opts.equip !== false ? h('div', {}, btn('Aus dem Trupp entlassen', () => { G.party = G.party.filter((p) => p !== m); for (const k of Object.keys(m.equip) as ('weapon' | 'armor' | 'trinket')[]) m.equip[k] = undefined; rerender(); }, { cls: 'small danger' })) : null));
@@ -77,13 +78,13 @@ function renderInv(el: HTMLElement, rr: () => void): void {
   for (const id of cons) {
     const d = ITEMS[id];
     const usable = !!(d.heal || d.mana || d.revive);
-    l1.appendChild(h('div', { class: 'item' }, h('span', { class: 'name' }, `${d.name} ×${G.inv[id]}`), h('span', { class: 'dim', style: 'font-size:12px' }, d.desc),
+    l1.appendChild(h('div', { class: 'item' }, slot(ITEM_ICON[id] ?? 'bag'), h('span', { class: 'name' }, `${d.name} ×${G.inv[id]}`), h('span', { class: 'dim', style: 'font-size:12px' }, d.desc),
       ...(usable ? G.party.map((m) => btn(m.name.split(' ')[0], () => { const err = useItem(id, m); if (err) toast(err, 'bad'); else SFX.heal(); rr(); }, { cls: 'small' })) : [])));
   }
   el.appendChild(l1);
   el.appendChild(h('h3', { class: 'gold', style: 'font-weight:normal;margin:10px 0 4px' }, 'Beute & Materialien'));
   const l2 = h('div', { class: 'list' });
-  for (const id of mats) l2.appendChild(h('div', { class: 'item' }, h('span', { class: 'name' }, `${itemName(id)} ×${G.inv[id]}`), h('span', { class: 'dim', style: 'font-size:12px' }, ITEMS[id]?.desc ?? '')));
+  for (const id of mats) l2.appendChild(h('div', { class: 'item' }, slot(ITEM_ICON[id] ?? 'bag'), h('span', { class: 'name' }, `${itemName(id)} ×${G.inv[id]}`), h('span', { class: 'dim', style: 'font-size:12px' }, ITEMS[id]?.desc ?? '')));
   if (!mats.length) l2.appendChild(h('div', { class: 'dim' }, 'Nichts.'));
   el.appendChild(l2);
   el.appendChild(h('h3', { class: 'gold', style: 'font-weight:normal;margin:10px 0 4px' }, 'Ausrüstung'));
@@ -94,7 +95,7 @@ function renderInv(el: HTMLElement, rr: () => void): void {
 
 export function gearRow(g: ItemInst, ...extra: HTMLElement[]): HTMLElement {
   const owner = G.party.find((m) => Object.values(m.equip).includes(g.uid));
-  return h('div', { class: 'item' },
+  return h('div', { class: 'item' }, slot(g.sleeping ? 'core' : gearIcon(g.def, g.slot, g.name)),
     h('span', { class: 'name' }, g.name, g.sleeping ? h('span', { class: 'tag' }, 'schlafend') : null, g.tribut ? h('span', { class: 'tag blood' }, 'Tribut') : null, g.curse ? h('span', { class: 'tag blood' }, 'verflucht') : null, owner ? h('span', { class: 'tag' }, owner.name) : null),
     h('span', { class: 'dim', style: 'font-size:12px' }, g.sleeping ? 'Muss bei der Gilde definiert werden.' : statLine(g.stats) + (g.curse ? ' · ' + g.curse : '')), ...extra);
 }
@@ -107,7 +108,7 @@ function renderMagic(el: HTMLElement): void {
   for (const f of G.formulas) {
     const sp = resolveSpell(f.split('+') as never);
     if (!sp) continue;
-    l.appendChild(h('div', { class: 'item' }, h('span', { class: 'name' }, sp.name, h('span', { class: 'tag' }, STAGE_NAME[sp.els.length])), h('span', { class: 'dim', style: 'font-size:12px;max-width:420px' }, sp.desc)));
+    l.appendChild(h('div', { class: 'item' }, h('span', { style: 'display:inline-flex;gap:2px' }, ...sp.els.map((e) => ico(e, 18))), h('span', { class: 'name' }, sp.name, h('span', { class: 'tag' }, STAGE_NAME[sp.els.length])), h('span', { class: 'dim', style: 'font-size:12px;max-width:420px' }, sp.desc)));
   }
   el.appendChild(l);
   el.appendChild(h('h3', { class: 'gold', style: 'font-weight:normal;margin:10px 0 4px' }, 'Gerüchte über überlieferte Formeln'));

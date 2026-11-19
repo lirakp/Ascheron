@@ -208,7 +208,8 @@ export function drawCharFrame(a: Appearance, dir: number, frame: number): PB {
   }
   void bob;
   const out = dir === 2 ? p.mirrorX() : p;
-  out.outline();
+  out.bevel(0.14, 0.2);
+  out.outline('#0a0b12');
   return out;
 }
 

@@ -30,7 +30,24 @@ export class PB {
     for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) o.set(this.w - 1 - x, y, this.get(x, y));
     return o;
   }
-  outline(color = '#140f0b'): void {
+  /** Kanten-Look wie im Referenz-Icon: oben/links heller Rand, unten/rechts Schatten – je Farbfläche. */
+  bevel(light = 0.32, dark = 0.3, skip: Set<string> = new Set()): void {
+    const src = [...this.px];
+    const at = (x: number, y: number) => (x < 0 || y < 0 || x >= this.w || y >= this.h ? null : src[y * this.w + x]);
+    for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) {
+      const c = at(x, y);
+      if (!c || skip.has(c)) continue;
+      const d = (a: number, b: number) => (at(a, b) !== c ? 1 : 0);
+      const score = d(x, y - 1) + d(x - 1, y) - d(x, y + 1) - d(x + 1, y);
+      if (score > 0) this.px[y * this.w + x] = shade(c, light);
+      else if (score < 0) this.px[y * this.w + x] = shade(c, -dark);
+    }
+  }
+  /** Zeichnet eine Masken-Grafik (Zeichen → Farbe). '.' ist leer. */
+  mask(rows: string[], pal: Record<string, string>, ox = 0, oy = 0): void {
+    rows.forEach((row, y) => [...row].forEach((ch, x) => { if (ch !== '.' && ch !== ' ' && pal[ch]) this.set(ox + x, oy + y, pal[ch]); }));
+  }
+  outline(color = '#0a0b12'): void {
     const add: [number, number][] = [];
     for (let y = 0; y < this.h; y++) for (let x = 0; x < this.w; x++) {
       if (this.get(x, y)) continue;

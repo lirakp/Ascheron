@@ -1,5 +1,4 @@
 import { PB, shade, canvas } from './pixel';
-import { mulberry32 } from '../core/state';
 
 export const T = {
   GRASS: 0, GRASS2: 1, PATH: 2, COBBLE: 3, BOG: 4, SEA: 5, SAND: 6, REED: 7, DEADTREE: 8, ROCK: 9,
@@ -15,80 +14,109 @@ const SOLID = new Set<number>([T.BOG, T.SEA, T.DEADTREE, T.ROCK, T.WALL, T.PALIS
   T.DTOP, T.CTOP, T.SIGN, T.DEEPSEA, T.STAIRS, T.EXIT, T.LAMP]);
 export const isSolid = (t: number) => SOLID.has(t);
 
-type TD = (p: PB, r: () => number) => void;
-const noise = (p: PB, r: () => number, base: string, vars: string[], amt = 0.25) => {
-  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p.set(x, y, r() < amt ? vars[Math.floor(r() * vars.length)] : base);
+type TD = (p: PB) => void;
+
+// Palette – flach, leicht entsättigt, Schatten mit Blaustich
+const C = {
+  grass: '#4f7040', grassD: '#41603a', grassL: '#638a4c',
+  moor: '#4b6b3e', moorD: '#3e5c36', moorL: '#5e8249',
+  path: '#8c7454', pathD: '#745f44', pathL: '#a38a66',
+  cob: '#6c707c', cobD: '#4a4e5c', cobL: '#888c98',
+  bog: '#2f4a40', bogL: '#41634f', bogD: '#243a33',
+  sea: '#2f5d8e', seaL: '#4f82b6', seaD: '#244a74', deep: '#213f66',
+  sand: '#c4ab7c', sandD: '#ab9264',
+  wood: '#7a5a3a', woodD: '#5a4028', woodL: '#96714a',
+  stone: '#7a7e8a', stoneD: '#4e5262', stoneL: '#979ba7',
+  plaster: '#d8ccb0', beam: '#6a4a30',
+  chalk: '#d4cdbd', chalkD: '#bab2a0', chalkL: '#e8e2d6',
+  dfl: '#3d404e', dflD: '#2d2f3b', dflL: '#4a4e5e',
+  dwall: '#565a6c', dtop: '#1a1c26',
+  sfl: '#3b443c', water: '#2d4538', waterL: '#3f5c4a',
 };
-const brick = (p: PB, base: string, mortar: string, rows = 4) => {
+const fill = (p: PB, c: string) => p.rect(0, 0, 16, 16, c);
+const tuft = (p: PB, x: number, y: number, c: string, l: string) => { p.set(x, y, c); p.set(x + 2, y, c); p.set(x + 1, y - 1, l); p.set(x + 1, y, c); };
+const obj = (p: PB, draw: (o: PB) => void, light = 0.3, dark = 0.3) => {
+  const o = new PB(16, 16); draw(o); o.bevel(light, dark); o.outline('#0a0b12');
+  for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const c = o.get(x, y); if (c) p.set(x, y, c); }
+};
+const bricks = (p: PB, base: string, mortar: string, light: string, rows = 4) => {
   const h = 16 / rows;
   for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) {
-    const row = Math.floor(y / h);
-    const off = row % 2 ? 4 : 0;
-    const edge = y % h === 0 || (x + off) % 8 === 0;
-    p.set(x, y, edge ? mortar : (x + y) % 7 === 0 ? shade(base, 0.08) : base);
+    const row = Math.floor(y / h), off = row % 2 ? 4 : 0, yy = y % h;
+    const edge = yy === h - 1 || (x + off) % 8 === 7;
+    p.set(x, y, edge ? mortar : yy === 0 ? light : base);
   }
 };
+const grass = (p: PB) => { fill(p, C.grass); tuft(p, 2, 4, C.grassD, C.grassL); tuft(p, 10, 2, C.grassD, C.grassL); tuft(p, 6, 11, C.grassD, C.grassL); tuft(p, 12, 13, C.grassD, C.grassL); };
+const moor = (p: PB) => { fill(p, C.moor); tuft(p, 3, 6, C.moorD, C.moorL); tuft(p, 11, 10, C.moorD, C.moorL); p.set(7, 2, C.moorD); p.set(14, 5, C.moorD); p.set(1, 13, C.moorD); };
+const cobble = (p: PB) => {
+  fill(p, C.cobD);
+  const stones: [number, number, number, number][] = [[0, 0, 7, 4], [8, 0, 8, 4], [0, 5, 4, 5], [5, 5, 6, 5], [12, 5, 4, 5], [0, 11, 8, 5], [9, 11, 7, 5]];
+  for (const [x, y, w, h] of stones) { p.rect(x, y, w - 1, h - 1, C.cob); p.rect(x, y, w - 1, 1, C.cobL); p.rect(x, y, 1, h - 1, C.cobL); }
+};
+const dfloor = (p: PB) => { fill(p, C.dfl); for (let i = 0; i < 16; i++) { p.set(i, 7, C.dflD); p.set(i, 15, C.dflD); p.set(7, i, C.dflD); p.set(15, i, C.dflD); p.set(i, 0, C.dflL); p.set(0, i, C.dflL); p.set(i, 8, C.dflL); p.set(8, i, C.dflL); } };
+const plaster = (p: PB) => { fill(p, C.plaster); p.rect(0, 0, 16, 2, C.beam); p.rect(0, 14, 16, 2, C.beam); p.rect(0, 0, 2, 16, C.beam); p.rect(2, 2, 14, 1, shade(C.plaster, 0.25)); };
+const roof = (p: PB, base: string) => { const d = shade(base, -0.3), l = shade(base, 0.22); for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const yy = y % 4, off = Math.floor(y / 4) % 2 ? 4 : 0; p.set(x, y, yy === 3 ? d : (x + off) % 8 === 0 ? d : yy === 0 ? l : base); } };
 
 const D: Record<number, TD> = {
-  [T.GRASS]: (p, r) => { noise(p, r, '#4f5a33', ['#5c6a3b', '#46502d', '#66733f'], 0.35); },
-  [T.GRASS2]: (p, r) => { noise(p, r, '#424d2c', ['#3a4426', '#4f5a33', '#56502e'], 0.4); },
-  [T.PATH]: (p, r) => { noise(p, r, '#6b5a40', ['#75644a', '#5f5038', '#82705a'], 0.35); },
-  [T.COBBLE]: (p, r) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const e = (x % 5 === 0) || (y % 4 === 0 && (x + Math.floor(y / 4) * 2) % 5 !== 2); p.set(x, y, e ? '#4a4640' : r() < 0.2 ? '#7a756c' : '#6a655c'); } },
-  [T.BOG]: (p, r) => { noise(p, r, '#2f3a2c', ['#34442f', '#283326', '#3c4a2f'], 0.3); for (let i = 0; i < 3; i++) p.set(r() * 16, r() * 16, '#56664a'); },
-  [T.SEA]: (p, r) => { noise(p, r, '#2a4a62', ['#2f5470', '#264358'], 0.3); for (let i = 0; i < 2; i++) { const x = r() * 12, y = r() * 16; p.line(x, y, x + 3, y, '#4f7a96'); } },
-  [T.DEEPSEA]: (p, r) => { noise(p, r, '#1f3a50', ['#23405a', '#1b3346'], 0.3); },
-  [T.SAND]: (p, r) => { noise(p, r, '#a8956a', ['#b5a274', '#9a885f'], 0.35); },
-  [T.REED]: (p, r) => { noise(p, r, '#4f5a33', ['#46502d'], 0.3); for (let i = 0; i < 5; i++) { const x = 2 + r() * 12; p.line(x, 15, x + (r() - 0.5) * 2, 6 + r() * 4, '#8a8a4a'); p.set(x, 6 + r() * 3, '#6a4a2a'); } },
-  [T.DEADTREE]: (p, r) => { noise(p, r, '#4f5a33', ['#46502d'], 0.3); p.rect(7, 6, 2, 10, '#3a2e22'); p.line(8, 8, 3, 2, '#3a2e22'); p.line(8, 7, 13, 1, '#3a2e22'); p.line(8, 10, 12, 6, '#3a2e22'); p.set(2, 1, '#3a2e22'); },
-  [T.TREE]: (p, r) => { noise(p, r, '#4f5a33', ['#46502d'], 0.3); p.rect(7, 11, 2, 5, '#4a3626'); p.ellipse(8, 6, 6.5, 6, (x, y) => (r() < 0.3 ? '#3a5a2a' : y > 8 ? '#28401f' : '#33502a')); },
-  [T.ROCK]: (p, r) => { noise(p, r, '#4f5a33', ['#46502d'], 0.3); p.ellipse(8, 9, 7, 6, (x, y) => (y < 7 ? '#8a857c' : r() < 0.3 ? '#6a665e' : '#77726a')); },
-  [T.WALL]: (p) => { brick(p, '#6e6a62', '#4a4741'); },
-  [T.PALISADE]: (p) => { for (let x = 0; x < 16; x++) for (let y = 0; y < 16; y++) p.set(x, y, x % 4 === 0 ? '#3a2c1e' : y < 2 && x % 4 === 2 ? '#3a2c1e' : '#6a5238'); },
-  [T.ROOF_R]: (p) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p.set(x, y, y % 4 === 3 ? '#5a2a20' : (x + (Math.floor(y / 4) % 2) * 2) % 4 === 0 ? '#7a3a2a' : '#8f4632'); },
-  [T.ROOF_G]: (p) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p.set(x, y, y % 4 === 3 ? '#3a3c40' : (x + (Math.floor(y / 4) % 2) * 2) % 4 === 0 ? '#50545a' : '#5c6068'); },
-  [T.ROOF_B]: (p) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p.set(x, y, y % 4 === 3 ? '#2a3448' : (x + (Math.floor(y / 4) % 2) * 2) % 4 === 0 ? '#3a4a66' : '#445676'); },
-  [T.HWALL]: (p) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p.set(x, y, x % 8 === 0 || y === 15 ? '#5a4430' : y % 5 === 0 ? '#c8b898' : '#d8c8a6'); },
-  [T.WINDOW]: (p) => { D[T.HWALL](p, () => 0.5); p.rect(4, 4, 8, 7, '#3a3020'); p.rect(5, 5, 6, 5, '#e8c070'); p.line(8, 5, 8, 9, '#3a3020'); p.line(5, 7, 10, 7, '#3a3020'); },
-  [T.DOOR]: (p) => { D[T.HWALL](p, () => 0.5); p.rect(3, 2, 10, 14, '#4a3020'); p.rect(4, 3, 8, 13, '#6a4428'); p.line(8, 3, 8, 15, '#4a3020'); p.set(10, 9, '#d8b060'); },
-  [T.CHURCHWALL]: (p) => { brick(p, '#8a8478', '#5a564e'); p.rect(5, 2, 6, 10, '#2a2a3a'); p.rect(6, 3, 4, 8, '#5a7ac8'); p.set(7, 4, '#e8c060'); p.set(8, 6, '#c84a4a'); p.set(7, 8, '#6ac86a'); p.ellipse(8, 3, 2, 1, '#5a7ac8'); },
-  [T.CHALK]: (p, r) => { noise(p, r, '#b8b2a2', ['#c8c2b2', '#a8a292', '#d0cabb'], 0.35); },
-  [T.CHALKROCK]: (p, r) => { noise(p, r, '#b8b2a2', ['#a8a292'], 0.3); p.ellipse(8, 9, 7, 6.5, (x, y) => (y < 6 ? '#ece8de' : r() < 0.3 ? '#cfc9ba' : '#ddd8cb')); },
-  [T.ENTRANCE]: (p, r) => { noise(p, r, '#6a655c', ['#5a554c'], 0.3); p.ellipse(8, 11, 7, 8, '#77726a'); p.ellipse(8, 12, 5, 6, '#0a0806'); p.rect(3, 12, 10, 4, '#0a0806'); p.set(5, 7, '#a83a2a'); p.set(11, 7, '#a83a2a'); },
-  [T.GRATE]: (p) => { D[T.COBBLE](p, () => 0.5); p.rect(2, 2, 12, 12, '#2a2622'); for (let i = 3; i < 14; i += 2) p.line(i, 3, i, 12, '#5a5650'); },
-  [T.PLANK]: (p) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p.set(x, y, y % 4 === 0 ? '#3a2c1e' : (x + y * 3) % 9 === 0 ? '#5a4430' : '#7a5c3c'); },
-  [T.RUIN]: (p, r) => { brick(p, '#5e5a54', '#3a3834'); for (let i = 0; i < 6; i++) p.set(r() * 16, r() * 6, null); for (let i = 0; i < 5; i++) p.set(r() * 16, r() * 16, '#4a6a3a'); },
-  [T.DFLOOR]: (p, r) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p.set(x, y, (x % 8 === 0 || y % 8 === 0) ? '#2a2622' : r() < 0.2 ? '#4a4540' : '#3f3a35'); },
-  [T.DWALL]: (p, r) => { brick(p, '#4e4840', '#2a2622'); for (let x = 0; x < 16; x++) p.set(x, 15, '#1e1a17'); void r; },
-  [T.DTOP]: (p, r) => { noise(p, r, '#1f1b18', ['#25201c', '#1a1714'], 0.3); },
-  [T.CFLOOR]: (p, r) => { noise(p, r, '#a8a292', ['#b8b2a2', '#9a9484', '#c2bcae'], 0.35); for (let i = 0; i < 2; i++) p.set(r() * 16, r() * 16, '#8a8474'); },
-  [T.CWALL]: (p, r) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p.set(x, y, y > 13 ? '#7a7464' : r() < 0.25 ? '#d8d2c4' : y % 5 === 0 ? '#b8b2a2' : '#cac4b6'); },
-  [T.CTOP]: (p, r) => { noise(p, r, '#5a5548', ['#625c50', '#4e4a40'], 0.3); },
-  [T.SWATER]: (p, r) => { noise(p, r, '#2e3a2a', ['#344230', '#28331f', '#3e4a2a'], 0.3); for (let i = 0; i < 2; i++) { const x = r() * 12; p.line(x, r() * 16, x + 3, r() * 16, '#4a5a3a'); } },
-  [T.SFLOOR]: (p, r) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p.set(x, y, (x % 8 === 0 || y % 4 === 0) ? '#2a2a24' : r() < 0.2 ? '#4a4a3c' : '#3e3e32'); },
-  [T.EXIT]: (p, r) => { D[T.DFLOOR](p, r); p.ellipse(8, 8, 7, 7, '#e8d8a0'); p.ellipse(8, 8, 5, 5, '#fff4c8'); p.ellipse(8, 8, 2, 2, '#ffffff'); },
-  [T.SAFE]: (p, r) => { D[T.DFLOOR](p, r); p.ellipse(8, 8, 6, 6, '#4a6a8a'); p.ellipse(8, 8, 5, 5, '#3f3a35'); p.line(8, 3, 8, 13, '#6a9aca'); p.line(3, 8, 13, 8, '#6a9aca'); },
-  [T.BENCH]: (p, r) => { D[T.DFLOOR](p, r); p.rect(1, 5, 14, 6, '#5a5650'); p.rect(1, 5, 14, 2, '#77726a'); p.rect(2, 11, 2, 3, '#4a4640'); p.rect(12, 11, 2, 3, '#4a4640'); },
-  [T.WELL]: (p, r) => { D[T.COBBLE](p, r); p.ellipse(8, 9, 7, 6, '#6e6a62'); p.ellipse(8, 9, 4.5, 3.5, '#1a2a3a'); p.rect(2, 1, 1, 8, '#4a3020'); p.rect(13, 1, 1, 8, '#4a3020'); p.rect(2, 1, 12, 1, '#4a3020'); },
-  [T.FLOWER]: (p, r) => { D[T.GRASS](p, r); for (let i = 0; i < 4; i++) { const x = 2 + r() * 12, y = 2 + r() * 12; p.set(x, y, '#c8a8d8'); p.set(x, y + 1, '#3a5a2a'); } },
-  [T.BLOOD]: (p, r) => { D[T.DFLOOR](p, r); p.ellipse(8, 9, 5, 3, '#5a1a18'); p.set(3, 4, '#5a1a18'); },
-  [T.STAIRS]: (p) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p.set(x, y, y % 4 === 0 ? '#1e1a17' : shade('#5a544c', -y / 30)); },
-  [T.FENCE]: (p, r) => { D[T.GRASS](p, r); p.rect(0, 6, 16, 2, '#6a5238'); p.rect(0, 11, 16, 2, '#6a5238'); for (let x = 1; x < 16; x += 5) p.rect(x, 4, 2, 11, '#4a3626'); },
-  [T.STALL]: (p, r) => { D[T.COBBLE](p, r); p.rect(1, 8, 14, 7, '#6a4a2c'); for (let x = 0; x < 16; x++) for (let y = 1; y < 7; y++) p.set(x, y, Math.floor(x / 3) % 2 ? '#c8b898' : '#a83a2a'); p.set(4, 9, '#c8a040'); p.set(9, 10, '#6a9a3a'); p.set(12, 9, '#a85a2a'); },
-  [T.SIGN]: (p, r) => { D[T.COBBLE](p, r); p.rect(7, 8, 2, 8, '#4a3626'); p.rect(2, 2, 12, 7, '#7a5c3c'); p.rect(3, 3, 10, 5, '#8a6a48'); p.line(4, 5, 11, 5, '#3a2c1e'); },
-  [T.BONES]: (p, r) => { D[T.DFLOOR](p, r); p.line(3, 10, 9, 8, '#d8d0bc'); p.set(2, 10, '#e8e0cc'); p.set(10, 8, '#e8e0cc'); p.ellipse(11, 11, 2, 2, '#d8d0bc'); p.set(11, 11, '#2a2622'); },
-  [T.PLATFORM]: (p) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p.set(x, y, y < 3 ? '#8a8478' : y === 3 ? '#4a4640' : (x + y) % 6 === 0 ? '#4e4a44' : '#5e5a52'); },
-  [T.LADDER]: (p) => { p.rect(3, 0, 2, 16, '#6a4a2c'); p.rect(11, 0, 2, 16, '#6a4a2c'); for (let y = 2; y < 16; y += 5) p.rect(3, y, 10, 2, '#8a6a44'); },
-  [T.TOWERBG]: (p, r) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const row = Math.floor(y / 4), off = row % 2 ? 4 : 0; p.set(x, y, (y % 4 === 0 || (x + off) % 8 === 0) ? '#1c1916' : r() < 0.15 ? '#2c2824' : '#26221e'); } },
-  [T.CHAIN]: (p, r) => { D[T.TOWERBG](p, r); for (let y = 0; y < 16; y++) { p.set(8, y, y % 4 < 2 ? '#d8d0bc' : '#a8a090'); if (y % 4 === 1) { p.set(7, y, '#a8a090'); p.set(9, y, '#a8a090'); } } },
-  [T.LAMP]: (p, r) => { D[T.COBBLE](p, r); p.rect(7, 4, 2, 12, '#2a2622'); p.rect(5, 1, 6, 4, '#2a2622'); p.rect(6, 2, 4, 2, '#f0c060'); },
+  [T.GRASS]: grass,
+  [T.GRASS2]: moor,
+  [T.PATH]: (p) => { fill(p, C.path); p.rect(3, 4, 2, 1, C.pathD); p.rect(10, 9, 3, 1, C.pathD); p.set(6, 13, C.pathL); p.set(13, 2, C.pathL); p.set(1, 10, C.pathL); },
+  [T.COBBLE]: cobble,
+  [T.BOG]: (p) => { fill(p, C.bog); p.rect(2, 4, 5, 1, C.bogL); p.rect(9, 10, 5, 1, C.bogL); p.rect(4, 12, 3, 1, C.bogD); p.rect(11, 3, 3, 1, C.bogD); },
+  [T.SEA]: (p) => { fill(p, C.sea); p.rect(2, 3, 4, 1, C.seaL); p.rect(9, 9, 5, 1, C.seaL); p.rect(5, 13, 3, 1, C.seaD); },
+  [T.DEEPSEA]: (p) => { fill(p, C.deep); p.rect(4, 6, 3, 1, C.seaD); p.rect(11, 12, 3, 1, C.seaD); },
+  [T.SAND]: (p) => { fill(p, C.sand); p.set(3, 3, C.sandD); p.set(11, 6, C.sandD); p.set(6, 12, C.sandD); p.set(14, 13, C.sandD); },
+  [T.REED]: (p) => { moor(p); for (const [x, y] of [[3, 6], [5, 3], [8, 7], [11, 4], [13, 8]]) { p.rect(x, y + 3, 1, 14 - y - 3, '#8f9a52'); p.rect(x + 1, y + 5, 1, 14 - y - 5, '#6a7a3a'); p.rect(x, y, 1, 3, '#7a5232'); p.set(x, y, '#9a6a3a'); } },
+  [T.DEADTREE]: (p) => { moor(p); obj(p, (o) => { o.rect(7, 5, 2, 11, '#5a4636'); o.line(8, 7, 3, 2, '#5a4636'); o.line(8, 6, 13, 1, '#5a4636'); o.line(8, 9, 12, 5, '#5a4636'); }); },
+  [T.TREE]: (p) => { grass(p); obj(p, (o) => { o.rect(7, 11, 2, 5, '#6a4a30'); o.ellipse(8, 6.5, 6.5, 6, '#3f7a3a'); o.ellipse(6, 5, 2, 1.5, '#4f9446'); }); },
+  [T.ROCK]: (p) => { moor(p); obj(p, (o) => { o.ellipse(8, 10, 6.5, 5, '#8a8e9a'); o.rect(4, 11, 9, 3, '#767a86'); }); },
+  [T.WALL]: (p) => bricks(p, C.stone, C.stoneD, C.stoneL),
+  [T.PALISADE]: (p) => { for (let x = 0; x < 16; x++) for (let y = 0; y < 16; y++) { const c = x % 4; p.set(x, y, c === 3 ? C.woodD : c === 0 ? C.woodL : C.wood); } for (let x = 0; x < 16; x += 4) { p.set(x + 1, 0, null); p.set(x + 2, 0, C.woodL); } p.rect(0, 9, 16, 2, C.woodD); },
+  [T.ROOF_R]: (p) => roof(p, '#a84a3a'),
+  [T.ROOF_G]: (p) => roof(p, '#5c6478'),
+  [T.ROOF_B]: (p) => roof(p, '#3f5a8a'),
+  [T.HWALL]: plaster,
+  [T.WINDOW]: (p) => { plaster(p); p.rect(4, 4, 8, 8, C.beam); p.rect(5, 5, 6, 6, '#f0c868'); p.rect(5, 5, 6, 1, '#fff0b0'); p.rect(7, 5, 2, 6, C.beam); p.rect(5, 7, 6, 2, C.beam); },
+  [T.DOOR]: (p) => { plaster(p); p.rect(3, 2, 10, 14, '#3a2818'); p.rect(4, 3, 8, 13, '#7a5232'); p.rect(4, 3, 8, 1, '#96704a'); p.rect(7, 3, 2, 13, '#5a3a22'); p.rect(10, 9, 1, 2, '#f0c35a'); },
+  [T.CHURCHWALL]: (p) => { bricks(p, '#8e8e9c', '#5a5c6c', '#a8a8b6'); p.rect(5, 2, 6, 11, '#2a2e44'); p.rect(6, 3, 4, 9, '#4f7ad0'); p.rect(6, 3, 2, 4, '#e0b04a'); p.rect(8, 7, 2, 3, '#c84a5a'); p.rect(6, 9, 2, 3, '#5ab06a'); },
+  [T.CHALK]: (p) => { fill(p, C.chalk); p.rect(3, 4, 3, 1, C.chalkD); p.rect(10, 11, 4, 1, C.chalkD); p.set(12, 3, C.chalkL); p.set(5, 12, C.chalkL); },
+  [T.CHALKROCK]: (p) => { D[T.CHALK](p); obj(p, (o) => { o.ellipse(8, 10, 6.5, 5.5, '#ece6d8'); o.rect(4, 12, 9, 2, '#d8d0c0'); }); },
+  [T.ENTRANCE]: (p) => { fill(p, C.cobD); obj(p, (o) => { o.ellipse(8, 10, 7.5, 7.5, '#7e8290'); o.rect(1, 10, 15, 6, '#7e8290'); }); p.ellipse(8, 11, 4.5, 5, '#06070c'); p.rect(4, 11, 9, 5, '#06070c'); p.set(5, 7, '#e0503a'); p.set(11, 7, '#e0503a'); },
+  [T.GRATE]: (p) => { cobble(p); obj(p, (o) => { o.rect(2, 2, 12, 12, '#3a3e4a'); }); p.rect(3, 3, 10, 10, '#0c0e16'); for (let i = 4; i < 13; i += 2) p.rect(i, 3, 1, 10, '#6a6e7c'); },
+  [T.PLANK]: (p) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) p.set(x, y, y % 4 === 3 ? C.woodD : y % 4 === 0 ? C.woodL : C.wood); p.set(3, 1, C.woodD); p.set(12, 9, C.woodD); },
+  [T.RUIN]: (p) => { moor(p); obj(p, (o) => { o.rect(0, 3, 16, 13, C.stone); o.rect(0, 1, 9, 2, C.stone); for (let x = 0; x < 16; x++) { o.set(x, 8, C.stoneD); } o.set(5, 8, C.stone); o.set(11, 3, null); o.set(12, 3, null); o.set(12, 4, null); }); p.rect(2, 13, 2, 1, '#5ab04a'); },
+  [T.DFLOOR]: dfloor,
+  [T.DWALL]: (p) => { bricks(p, C.dwall, '#383b4a', '#6c7084'); p.rect(0, 14, 16, 2, '#0e0f16'); },
+  [T.DTOP]: (p) => { fill(p, C.dtop); p.rect(0, 0, 16, 1, '#232634'); },
+  [T.CFLOOR]: (p) => { fill(p, '#bab2a0'); for (let i = 0; i < 16; i++) { p.set(i, 15, '#a39a88'); p.set(15, i, '#a39a88'); p.set(i, 0, '#ccc4b2'); } p.rect(5, 6, 3, 1, '#a39a88'); },
+  [T.CWALL]: (p) => { bricks(p, '#d8d2c4', '#a8a090', '#eee8dc', 3); p.rect(0, 14, 16, 2, '#6a6458'); },
+  [T.CTOP]: (p) => { fill(p, '#4e4a44'); p.rect(0, 0, 16, 1, '#5e5a52'); },
+  [T.SWATER]: (p) => { fill(p, C.water); p.rect(2, 4, 5, 1, C.waterL); p.rect(9, 11, 5, 1, C.waterL); p.rect(0, 0, 16, 1, '#1c2a22'); },
+  [T.SFLOOR]: (p) => { fill(p, C.sfl); for (let i = 0; i < 16; i++) { p.set(i, 7, '#2c332d'); p.set(i, 15, '#2c332d'); p.set(i, 0, '#4a544a'); p.set(i, 8, '#4a544a'); } for (let y = 0; y < 16; y++) { p.set((y < 8 ? 7 : 11), y, '#2c332d'); } },
+  [T.EXIT]: (p) => { dfloor(p); obj(p, (o) => { o.ellipse(8, 8, 6.5, 6.5, '#f0d88a'); o.ellipse(8, 8, 4, 4, '#fff6d0'); }, 0.4, 0.2); },
+  [T.SAFE]: (p) => { dfloor(p); obj(p, (o) => { o.ellipse(8, 8, 6, 6, '#4f86c8'); o.ellipse(8, 8, 4, 4, C.dfl); o.rect(7, 3, 2, 10, '#8ac0f0'); o.rect(3, 7, 10, 2, '#8ac0f0'); }, 0.3, 0.3); },
+  [T.BENCH]: (p) => { dfloor(p); obj(p, (o) => { o.rect(1, 4, 14, 6, '#7a7e8c'); o.rect(2, 10, 2, 4, '#5a5e6c'); o.rect(12, 10, 2, 4, '#5a5e6c'); }); },
+  [T.WELL]: (p) => { cobble(p); obj(p, (o) => { o.ellipse(8, 10, 7, 5.5, '#7a7e8a'); o.rect(2, 1, 1, 9, '#7a5232'); o.rect(13, 1, 1, 9, '#7a5232'); o.rect(2, 1, 12, 2, '#a84a3a'); }); p.ellipse(8, 10, 4, 2.5, '#1f3d66'); },
+  [T.FLOWER]: (p) => { grass(p); for (const [x, y, c] of [[3, 4, '#e8a8d8'], [11, 3, '#f0e070'], [7, 10, '#e8a8d8'], [13, 12, '#a8c8f0']] as [number, number, string][]) { p.set(x, y, c); p.set(x - 1, y, shade(c, -0.3)); p.set(x + 1, y, shade(c, -0.3)); p.set(x, y - 1, shade(c, 0.3)); p.set(x, y + 1, '#2f5a2a'); } },
+  [T.BLOOD]: (p) => { dfloor(p); p.ellipse(8, 9, 5, 3, '#6a1820'); p.ellipse(7, 8, 2, 1, '#8a2830'); p.set(3, 4, '#6a1820'); },
+  [T.STAIRS]: (p) => { for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const st = Math.floor(y / 4); p.set(x, y, y % 4 === 0 ? shade('#7a7e8c', -st * 0.18 + 0.15) : shade('#5a5e6c', -st * 0.18)); } },
+  [T.FENCE]: (p) => { grass(p); obj(p, (o) => { o.rect(0, 6, 16, 2, C.wood); o.rect(0, 11, 16, 2, C.wood); for (let x = 2; x < 16; x += 6) o.rect(x, 4, 2, 11, C.woodD); }, 0.25, 0.2); },
+  [T.STALL]: (p) => { cobble(p); obj(p, (o) => { o.rect(1, 8, 14, 7, C.wood); for (let x = 0; x < 16; x++) for (let y = 1; y < 7; y++) o.set(x, y, Math.floor(x / 4) % 2 ? '#e8dcc0' : '#c0483a'); }); p.set(4, 9, '#f0c35a'); p.set(8, 9, '#6ab04a'); p.set(12, 9, '#d8783a'); },
+  [T.SIGN]: (p) => { cobble(p); obj(p, (o) => { o.rect(7, 8, 2, 8, C.woodD); o.rect(2, 2, 12, 7, C.wood); }); p.rect(4, 4, 8, 1, '#3a2818'); p.rect(4, 6, 6, 1, '#3a2818'); },
+  [T.BONES]: (p) => { dfloor(p); obj(p, (o) => { o.line(3, 11, 9, 9, '#e8e0cc'); o.ellipse(11.5, 11, 2, 2, '#e8e0cc'); }, 0.2, 0.25); p.set(11, 11, '#1a1c26'); },
+  [T.PLATFORM]: (p) => { fill(p, '#5e6272'); p.rect(0, 0, 16, 3, '#9a9eac'); p.rect(0, 3, 16, 1, '#3a3d4a'); for (let x = 0; x < 16; x += 8) p.rect(x, 4, 1, 12, '#4a4e5c'); },
+  [T.LADDER]: (p) => { p.rect(3, 0, 2, 16, C.wood); p.rect(11, 0, 2, 16, C.wood); p.rect(3, 0, 1, 16, C.woodL); p.rect(11, 0, 1, 16, C.woodL); for (let y = 2; y < 16; y += 5) { p.rect(3, y, 10, 2, C.woodL); p.rect(3, y + 1, 10, 1, C.woodD); } },
+  [T.TOWERBG]: (p) => bricks(p, '#24262f', '#181a21', '#2c2f3a'),
+  [T.CHAIN]: (p) => { D[T.TOWERBG](p); for (let y = 0; y < 16; y += 4) { p.rect(7, y, 2, 3, '#d8d0bc'); p.set(7, y, '#f0ead8'); p.set(8, y + 2, '#a8a090'); } },
+  [T.LAMP]: (p) => { cobble(p); obj(p, (o) => { o.rect(7, 5, 2, 11, '#2a2e3a'); o.rect(5, 1, 6, 5, '#2a2e3a'); }); p.rect(6, 2, 4, 3, '#f8d068'); p.rect(6, 2, 4, 1, '#fff2b0'); },
 };
 
 export function tilesetCanvas(): HTMLCanvasElement {
   const [c, ctx] = canvas(16 * TILE_COUNT, 16);
   for (let i = 0; i < TILE_COUNT; i++) {
     const p = new PB(16, 16);
-    const fn = D[i];
-    if (fn) fn(p, mulberry32(1000 + i * 17));
+    D[i]?.(p);
     p.draw(ctx, i * 16, 0);
   }
   return c;
