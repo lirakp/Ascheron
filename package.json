@@ -1,0 +1,19 @@
+{
+  "name": "ascheron",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Ascheron – 2D Open-World-RPG nach der Welt-Bibel",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build && node scripts/inline.mjs",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "phaser": "3.90.0"
+  },
+  "devDependencies": {
+    "typescript": "^5",
+    "vite": "^6"
+  }
+}
