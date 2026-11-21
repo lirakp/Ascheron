@@ -595,7 +595,7 @@ export function ico(name: string, size = 18): HTMLImageElement {
 export const ITEM_ICON: Record<string, string> = {
   heiltrank: 'potion_red', heiltrank2: 'potion_big', manatrank: 'potion_blue', riechsalz: 'potion_white', kraeuterbund: 'potion_green',
   proviant: 'bread', moorkraut: 'herb', kern_klein: 'core', kern_mittel: 'core', kern_kopf: 'core_big', glutkern: 'core_orange', blutkern: 'core_red',
-  wuergerhaut: 'hide', aschzahn: 'fang', kreide: 'rock_white', glockenbronze: 'bell', opfermuenzen: 'coin', stilleglocke: 'bell', erinnerungssplitter: 'core_big', dornenseide: 'hide', herzrose: 'core_red', altbrot: 'bread', plakette: 'plakette',
+  wuergerhaut: 'hide', aschzahn: 'fang', kreide: 'rock_white', glockenbronze: 'bell', opfermuenzen: 'coin', stilleglocke: 'bell', beutel: 'bag', frostfell: 'hide', runenstein: 'rock_white', giftdruese: 'potion_green', schattenessenz: 'potion_blue', dornsiegel: 'amulet', erinnerungssplitter: 'core_big', dornenseide: 'hide', herzrose: 'core_red', altbrot: 'bread', plakette: 'plakette',
 };
 export function gearIcon(def: string, slotName: string, name = ''): string {
   if (slotName === 'armor') return 'armor';

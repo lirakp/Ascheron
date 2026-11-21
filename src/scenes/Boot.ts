@@ -1,6 +1,7 @@
 import Phaser from 'phaser';
 import { tilesetCanvas } from '../gfx/tiles';
-import { MONSTER_DRAWERS, monsterCanvas } from '../gfx/monsters';
+import { MONSTER_DRAWERS, monsterCanvas, humanMonsterCanvas } from '../gfx/monsters';
+import { MONSTERS } from '../data/monsters';
 import { canvas, PB } from '../gfx/pixel';
 import { iconCanvas } from '../gfx/icons';
 
@@ -16,6 +17,7 @@ export class BootScene extends Phaser.Scene {
   build(): void {
     this.textures.addCanvas('tiles', tilesetCanvas());
     for (const k of Object.keys(MONSTER_DRAWERS)) this.textures.addCanvas(k, monsterCanvas(k));
+    for (const m of Object.values(MONSTERS)) if (m.human && !this.textures.exists(m.sprite)) this.textures.addCanvas(m.sprite, humanMonsterCanvas(m.human.app, m.human.weapon));
     // kleine Effekt-Texturen
     const [px, pctx] = canvas(4, 4); pctx.fillStyle = '#fff'; pctx.fillRect(0, 0, 4, 4); this.textures.addCanvas('px', px);
     const [dot, dctx] = canvas(32, 32);

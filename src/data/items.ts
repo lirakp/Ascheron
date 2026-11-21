@@ -36,6 +36,12 @@ export const ITEMS: Record<string, ItemDef> = {
   dornenseide: { id: 'dornenseide', name: 'Dornenseide', kind: 'material', price: 35, desc: 'Reißfest und blutig. Schneider zahlen gut.' },
   herzrose: { id: 'herzrose', name: 'Rote Herzrose', kind: 'material', price: 900, desc: 'Das Herz der Gärtnerin. Sie verwelkt nicht.' },
   erinnerungssplitter: { id: 'erinnerungssplitter', name: 'Erinnerungssplitter', kind: 'material', price: 180, desc: 'Ein Stück fremder Vergangenheit, kalt wie Glas. Sammler zahlen viel.' },
+  beutel: { id: 'beutel', name: 'Gestohlener Geldbeutel', kind: 'material', price: 45, desc: 'Gehört jetzt dir. Das Konsortium fragt nicht.' },
+  frostfell: { id: 'frostfell', name: 'Frostfell', kind: 'material', price: 30, desc: 'Weiches, kaltes Fell aus Kaldrion.' },
+  runenstein: { id: 'runenstein', name: 'Runenstein', kind: 'material', price: 90, desc: 'Ein zwergischer Runenstein. In Eisenherz zahlt man gut dafür.' },
+  giftdruese: { id: 'giftdruese', name: 'Giftdrüse', kind: 'material', price: 55, desc: 'Aus einem Dünenskorpion. Die Rostige Münze kauft sie gern.' },
+  schattenessenz: { id: 'schattenessenz', name: 'Schattenessenz', kind: 'material', price: 140, desc: 'Flüssige Dunkelheit in einer Phiole.' },
+  dornsiegel: { id: 'dornsiegel', name: 'Siegel der Dornen', kind: 'key', price: 0, desc: 'Ein Geschenk der Verlorenen Königin. Ihre Soldaten lassen dich passieren.' },
   plakette: { id: 'plakette', name: 'Kalte Seelenplakette', kind: 'key', price: 0, desc: 'Die Plakette eines toten Abenteurers. Die Gilde zahlt für die Rückgabe.' },
 };
 

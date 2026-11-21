@@ -1,4 +1,4 @@
-import type { El, Rank } from './types';
+import type { El, Rank, Appearance } from './types';
 
 export interface AttackDef {
   name: string;
@@ -33,6 +33,7 @@ export interface MonsterDef {
   part?: string; // Teil eines Bosses
   eyes?: number; // Rankenweber: erst nach allen getroffenen Rosenaugen tötbar
   echo?: boolean; // Nachhall: Waffen gehen durch, Stille löscht ihn
+  human?: { app: Partial<Appearance>; weapon: 'sword' | 'spear' | 'mace' | 'staff' | 'crossbow' }; // menschlicher Gegner: Sprite aus dem Figuren-Generator
 }
 
 const A = (name: string, hits: number, power: number, kind: 'parry' | 'dodge', extra: Partial<AttackDef> = {}): AttackDef =>
@@ -208,6 +209,94 @@ export const MEMORY_MONSTERS: Record<string, MonsterDef> = {
   },
 };
 Object.assign(MONSTERS, MEMORY_MONSTERS);
+
+// ---------------------------------------------------------------- Gegner der übrigen Reiche
+const H = (app: Partial<Appearance>, weapon: 'sword' | 'spear' | 'mace' | 'staff' | 'crossbow') => ({ app, weapon });
+export const REGION_MONSTERS: Record<string, MonsterDef> = {
+  bandit: {
+    id: 'bandit', name: 'Wegelagerer', rank: 'C', hp: 75, atk: 15, def: 6, mag: 4, spd: 10, xp: 30,
+    weak: [], resist: [],
+    attacks: [A('Messerstich', 2, 0.6, 'parry', { gap: 320 }), A('Knüppelhieb', 1, 1.2, 'parry', { windup: 1000 }), A('Sand in die Augen', 1, 0.5, 'dodge', { status: 'langsam', statusChance: 0.6, windup: 800 })],
+    drops: [{ item: 'beutel', chance: 0.7 }, { item: 'heiltrank', chance: 0.25 }],
+    sprite: 'm_bandit', desc: 'Deserteure, Bankrotte, entlaufene Söldner. Auf den Straßen zwischen den Reichen gibt es mehr Wegelagerer als Wachen.',
+    human: H({ gender: 'm', hair: '#3b2a1c', beard: 'stoppel', cloth: '#5a4a3a', cloth2: '#2a2420', build: 'kraeftig' }, 'sword'),
+  },
+  sklavenjaeger: {
+    id: 'sklavenjaeger', name: 'Sklavenjäger', rank: 'B', hp: 140, atk: 24, def: 9, mag: 6, spd: 11, xp: 60,
+    weak: [], resist: [],
+    attacks: [A('Kettenpeitsche', 3, 0.5, 'parry', { gap: 300, status: 'langsam', statusChance: 0.4 }), A('Netz', 1, 0.6, 'dodge', { status: 'kokon', statusChance: 0.7, windup: 900, text: 'Er wirft ein beschwertes Netz.' }), A('Fangschlag', 1, 1.3, 'parry', { windup: 1100 })],
+    drops: [{ item: 'beutel', chance: 0.9 }, { item: 'kern_mittel', chance: 0.3 }],
+    sprite: 'm_sklavenjaeger', desc: 'Er arbeitet für Goldwacht. Elfen bringen am meisten, Tiermenschen am verlässlichsten.',
+    human: H({ gender: 'm', hair: '#1e1612', beard: 'kurz', cloth: '#3a2a2a', cloth2: '#1e1616', build: 'kraeftig', hairStyle: 'glatze' }, 'mace'),
+  },
+  elfenjaeger: {
+    id: 'elfenjaeger', name: 'Elfenjäger', rank: 'B', hp: 130, atk: 26, def: 8, mag: 6, spd: 13, xp: 60,
+    weak: ['dendro'], resist: [],
+    attacks: [A('Bolzensalve', 3, 0.5, 'dodge', { gap: 260, windup: 800 }), A('Silberbolzen', 1, 1.4, 'parry', { windup: 1200, text: 'Ein Bolzen, gesegnet gegen Elfenblut.' })],
+    drops: [{ item: 'beutel', chance: 0.8 }, { item: 'kern_mittel', chance: 0.35 }],
+    sprite: 'm_elfenjaeger', desc: 'In Eschenwacht ist die Elfenjagd ein Gewerbe. Er trägt die Ohren seiner Beute am Gürtel.',
+    human: H({ gender: 'w', hair: '#6a4426', hairStyle: 'zopf', cloth: '#3f5a3a', cloth2: '#2a3a26' }, 'crossbow'),
+  },
+  frostwolf: {
+    id: 'frostwolf', name: 'Frostwolf', rank: 'C', hp: 85, atk: 17, def: 5, mag: 4, spd: 15, xp: 34,
+    weak: ['feuer'], resist: ['eis'],
+    attacks: [A('Eisbiss', 2, 0.6, 'parry', { gap: 300, status: 'langsam', statusChance: 0.35 }), A('Rudelsprung', 1, 1.2, 'parry', { windup: 650 })],
+    drops: [{ item: 'frostfell', chance: 0.7 }, { item: 'kern_klein', chance: 0.6 }],
+    sprite: 'm_frostwolf', desc: 'Weiße Wölfe aus den Pässen Kaldrions. Ihr Atem gefriert in der Luft.',
+  },
+  runenwaechter: {
+    id: 'runenwaechter', name: 'Runenwächter', rank: 'B', hp: 240, atk: 22, def: 16, mag: 8, spd: 5, xp: 80,
+    weak: ['wasser', 'elektro'], resist: ['erde', 'feuer'],
+    attacks: [A('Steinfaust', 1, 1.4, 'parry', { windup: 1400 }), A('Runenbeben', 1, 0.9, 'dodge', { target: 'all', windup: 1300, text: 'Die Runen auf seiner Brust glühen auf.' })],
+    drops: [{ item: 'runenstein', chance: 0.8 }, { item: 'kern_mittel', chance: 0.6 }],
+    sprite: 'm_runenwaechter', desc: 'Zwergische Wächter aus Stein, gebaut, um verlassene Minen zu hüten. Sie wissen nicht, dass ihre Erbauer längst fort sind.',
+  },
+  duenenskorpion: {
+    id: 'duenenskorpion', name: 'Dünenskorpion', rank: 'B', hp: 140, atk: 22, def: 12, mag: 4, spd: 10, xp: 55,
+    weak: ['eis', 'wasser'], resist: ['feuer'],
+    attacks: [A('Scherengriff', 2, 0.6, 'parry', { gap: 340 }), A('Giftstachel', 1, 1.1, 'dodge', { windup: 1000, status: 'blutung', statusChance: 0.7, text: 'Der Stachel zuckt über dem Rücken.' })],
+    drops: [{ item: 'giftdruese', chance: 0.6 }, { item: 'kern_mittel', chance: 0.4 }],
+    sprite: 'm_skorpion', desc: 'Sie graben sich in die Dünen südlich von Goldwacht ein und warten auf Karawanen.',
+  },
+  schattenlauerer: {
+    id: 'schattenlauerer', name: 'Schattenlauerer', rank: 'A', hp: 190, atk: 32, def: 10, mag: 12, spd: 15, xp: 95,
+    weak: ['licht'], resist: ['schatten'],
+    attacks: [A('Aus dem Dunkel', 1, 1.5, 'dodge', { windup: 700 }), A('Krallenwirbel', 3, 0.55, 'parry', { gap: 260 })],
+    drops: [{ item: 'schattenessenz', chance: 0.6 }, { item: 'kern_mittel', chance: 0.6 }],
+    sprite: 'm_lauerer', desc: 'Was in den leergejagten Nachtklüften zurückblieb, als die Dunkelelfen fort waren.',
+  },
+  blindwurm: {
+    id: 'blindwurm', name: 'Blindwurm', rank: 'B', hp: 280, atk: 28, def: 14, mag: 4, spd: 7, xp: 100,
+    weak: ['elektro'], resist: ['erde'],
+    attacks: [A('Verschlingen', 1, 1.5, 'dodge', { windup: 1300 }), A('Peitschender Leib', 2, 0.7, 'parry', { gap: 420 })],
+    drops: [{ item: 'kern_mittel', chance: 0.9 }],
+    sprite: 'm_blindwurm', desc: 'Bleiche Würmer, dick wie Fässer. Sie hören jeden Schritt.',
+  },
+  zeitmotte: {
+    id: 'zeitmotte', name: 'Zeitmotte', rank: 'C', hp: 45, atk: 18, def: 4, mag: 10, spd: 18, xp: 30,
+    weak: ['feuer', 'licht'], resist: [],
+    attacks: [A('Augenblicke fressen', 1, 0.6, 'parry', { windup: 700, status: 'betaeubt', statusChance: 0.5, text: 'Ein paar Atemzüge fehlen dir plötzlich.' })],
+    drops: [],
+    sprite: 'm_zeitmotte', desc: 'Graue Motten von Handgröße, das Einzige, was sich in den Erstarrten Landen bewegt. Ihr Biss frisst Augenblicke.',
+  },
+  erstarrter_ritter: {
+    id: 'erstarrter_ritter', name: 'Erstarrter Ritter', rank: 'A', hp: 320, atk: 36, def: 20, mag: 6, spd: 7, xp: 140,
+    weak: ['feuer'], resist: ['eis', 'schatten'],
+    attacks: [A('Langsamer Hieb', 1, 1.6, 'parry', { windup: 1600, text: 'Er bewegt sich, als wäre jede Sekunde ein Jahr.' }), A('Valmors Wacht', 2, 0.8, 'parry', { windup: 1200, gap: 600 })],
+    drops: [{ item: 'erinnerungssplitter', chance: 0.6 }, { item: '#schlafend', chance: 0.5 }],
+    sprite: 'm_ritter', desc: 'Ein Ritter des alten Königreichs Valmor, seit 400 Jahren mitten in einer Bewegung erstarrt. Manchmal beendet er sie.',
+    human: H({ gender: 'm', skin: '#9aa0a8', hair: '#6a6e76', beard: 'kurz', cloth: '#7a8088', cloth2: '#5a5e66', build: 'kraeftig', eyes: '#c8d8f0' }, 'sword'),
+  },
+  dornsoldat: {
+    id: 'dornsoldat', name: 'Dornsoldat', rank: 'A', hp: 400, atk: 40, def: 20, mag: 10, spd: 9, xp: 200,
+    weak: ['feuer'], resist: ['dendro'],
+    attacks: [A('Dornenhellebarde', 2, 0.9, 'parry', { gap: 380 }), A('Sturmangriff', 1, 1.5, 'dodge', { windup: 1100 })],
+    drops: [{ item: 'kern_mittel', chance: 1 }],
+    sprite: 'm_dornsoldat', desc: 'Ein Soldat aus dem Heer der Verlorenen Königin. Die Frist schützt ihre Aufrüstung – wer sie angreift, bricht sie.',
+    human: H({ gender: 'm', skin: '#c8a8a0', hair: '#141018', cloth: '#5a1a22', cloth2: '#2a0e12', build: 'kraeftig', hairStyle: 'kurz' }, 'spear'),
+  },
+};
+Object.assign(MONSTERS, REGION_MONSTERS);
 
 export function eliteOf(id: string): MonsterDef {
   const b = MONSTERS[id];

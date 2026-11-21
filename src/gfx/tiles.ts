@@ -9,12 +9,16 @@ export const T = {
   DWALL_MOSS: 51, DWALL_CRACK: 52, TORCH: 53, DFLOOR_CRACK: 54, PUDDLE: 55, RUBBLE: 56, CWALL_FOSSIL: 57, CFLOOR_CRACK: 58, PIPE: 59, COBWEB: 60, BANNER: 61,
   HEDGE: 62, HEDGE_TOP: 63, GARDEN: 64, THORN_GATE: 65, ROSEBED: 66,
   MFLOOR: 67, MWALL: 68, MTOP: 69, MIRROR: 70, HUT: 71,
+  SNOW: 72, SNOW2: 73, PINE: 74, ICE: 75, FROZEN: 76, FROZEN_TREE: 77, DUNE: 78, DUNE2: 79, PALM: 80, DESERT_ROCK: 81,
+  OAK: 82, FOREST: 83, MARBLE: 84, CAVE: 85, CAVE_WALL: 86, CRYSTAL: 87, ASH: 88, ASH2: 89, CHARRED: 90, MOUNTAIN: 91,
+  FIELD: 92, RIVER: 93, STATUE: 94, REDWALL: 95, TENT: 96, CAVE_GATE: 97, MINE: 98, SANDSTONE: 99, RUIN_GRAY: 100,
 } as const;
-export const TILE_COUNT = 72;
+export const TILE_COUNT = 101;
 
 const SOLID = new Set<number>([T.BOG, T.SEA, T.DEADTREE, T.ROCK, T.WALL, T.PALISADE, T.ROOF_R, T.ROOF_G, T.HWALL, T.DOOR, T.CHALKROCK,
   T.ENTRANCE, T.GRATE, T.RUIN, T.DWALL, T.CWALL, T.SWATER, T.BENCH, T.WINDOW, T.CHURCHWALL, T.WELL, T.TREE, T.ROOF_B, T.FENCE, T.STALL,
-  T.DTOP, T.CTOP, T.SIGN, T.DEEPSEA, T.STAIRS, T.EXIT, T.LAMP, T.DWALL_MOSS, T.DWALL_CRACK, T.TORCH, T.CWALL_FOSSIL, T.PIPE, T.BANNER, T.RUBBLE, T.HEDGE, T.HEDGE_TOP, T.THORN_GATE, T.ROSEBED, T.MWALL, T.MTOP, T.MIRROR, T.HUT]);
+  T.DTOP, T.CTOP, T.SIGN, T.DEEPSEA, T.STAIRS, T.EXIT, T.LAMP, T.DWALL_MOSS, T.DWALL_CRACK, T.TORCH, T.CWALL_FOSSIL, T.PIPE, T.BANNER, T.RUBBLE, T.HEDGE, T.HEDGE_TOP, T.THORN_GATE, T.ROSEBED, T.MWALL, T.MTOP, T.MIRROR, T.HUT,
+  T.PINE, T.ICE, T.FROZEN_TREE, T.PALM, T.DESERT_ROCK, T.OAK, T.CAVE_WALL, T.CRYSTAL, T.CHARRED, T.MOUNTAIN, T.RIVER, T.STATUE, T.REDWALL, T.TENT, T.CAVE_GATE, T.MINE, T.SANDSTONE, T.RUIN_GRAY]);
 export const isSolid = (t: number) => SOLID.has(t);
 
 type TD = (p: PB) => void;
@@ -139,6 +143,35 @@ const D: Record<number, TD> = {
   [T.MTOP]: (p) => { fill(p, '#262a35'); p.rect(0, 0, 16, 1, '#323746'); },
   [T.MIRROR]: (p) => { D[T.MFLOOR](p); obj(p, (o) => { o.rect(3, 0, 10, 15, '#8a7a5a'); o.rect(4, 1, 8, 12, '#3a4458'); o.rect(5, 2, 2, 6, '#9ab0d0'); }, 0.3, 0.3); },
   [T.HUT]: (p) => { D[T.SAND](p); obj(p, (o) => { o.rect(1, 6, 14, 10, '#7a5a3a'); for (let y = 0; y < 7; y++) o.rect(8 - y - 1, y, (y + 1) * 2, 1, '#5c6478'); }, 0.25, 0.3); p.rect(6, 10, 4, 6, '#06070c'); p.rect(2, 8, 2, 2, '#e8c070'); },
+  [T.SNOW]: (p) => { fill(p, '#dfe6ee'); p.set(3, 4, '#c4cfdc'); p.set(11, 9, '#c4cfdc'); p.set(7, 13, '#c4cfdc'); p.set(13, 2, '#ffffff'); p.set(2, 11, '#ffffff'); },
+  [T.SNOW2]: (p) => { fill(p, '#d2dae6'); p.rect(4, 6, 3, 1, '#bcc8d6'); p.rect(10, 12, 4, 1, '#bcc8d6'); p.set(8, 3, '#ffffff'); },
+  [T.PINE]: (p) => { D[T.SNOW](p); obj(p, (o) => { o.rect(7, 12, 2, 4, '#5a4030'); for (let y = 1; y < 13; y++) { const w = Math.round(y * 0.55) + 1; o.rect(8 - w, y, w * 2, 1, y % 4 === 0 ? '#2a4a3a' : '#33584a'); } o.set(8, 1, '#ffffff'); o.rect(6, 4, 4, 1, '#e8eef4'); o.rect(5, 8, 6, 1, '#e8eef4'); }); },
+  [T.ICE]: (p) => { fill(p, '#a8c8e0'); p.line(2, 3, 7, 6, '#d8ecf8'); p.line(9, 10, 14, 12, '#d8ecf8'); p.rect(4, 12, 3, 1, '#8ab0cc'); },
+  [T.FROZEN]: (p) => { fill(p, '#7a7e84'); tuft(p, 3, 5, '#6a6e74', '#9a9ea4'); tuft(p, 11, 11, '#6a6e74', '#9a9ea4'); p.set(8, 2, '#8a8e94'); },
+  [T.FROZEN_TREE]: (p) => { D[T.FROZEN](p); obj(p, (o) => { o.rect(7, 9, 2, 7, '#5a5a60'); o.ellipse(8, 6, 6, 5.5, '#9aa0a8'); o.ellipse(6, 5, 2, 1.5, '#b8bec6'); }, 0.25, 0.3); },
+  [T.DUNE]: (p) => { fill(p, '#d8b878'); p.line(0, 5, 7, 3, '#c8a868'); p.line(7, 3, 15, 6, '#e8cc90'); p.line(2, 12, 12, 10, '#c8a868'); },
+  [T.DUNE2]: (p) => { fill(p, '#ccac6c'); p.line(1, 9, 9, 7, '#e0c486'); p.line(9, 7, 15, 9, '#b89a5c'); p.set(5, 3, '#b89a5c'); },
+  [T.PALM]: (p) => { D[T.DUNE](p); obj(p, (o) => { for (let y = 5; y < 16; y++) o.set(8 + Math.round(Math.sin(y / 3)), y, '#8a6238'); for (const [dx, dy] of [[-6, 2], [6, 2], [-5, -1], [5, -1], [0, -3]]) o.line(8, 4, 8 + dx, 4 + dy, '#4a8a3a'); o.rect(7, 4, 3, 2, '#5a3a20'); }, 0.25, 0.25); },
+  [T.DESERT_ROCK]: (p) => { D[T.DUNE](p); obj(p, (o) => { o.ellipse(8, 10, 7, 5.5, '#b8875a'); o.rect(3, 11, 10, 3, '#a07448'); o.line(5, 7, 10, 8, '#c89a6a'); }); },
+  [T.OAK]: (p) => { D[T.FOREST](p); obj(p, (o) => { o.rect(6, 10, 4, 6, '#5a4030'); o.ellipse(8, 6, 7.5, 6.5, '#2f6a32'); o.ellipse(5, 4, 3, 2, '#3f8040'); o.ellipse(11, 7, 2.5, 2, '#285a2a'); }); },
+  [T.FOREST]: (p) => { fill(p, '#3a5a30'); tuft(p, 3, 6, '#2c4a26', '#4c7038'); tuft(p, 10, 12, '#2c4a26', '#4c7038'); p.set(12, 3, '#6a5a38'); p.set(5, 13, '#6a5a38'); },
+  [T.MARBLE]: (p) => { fill(p, '#d8d4cc'); p.rect(0, 7, 16, 1, '#b8b4ac'); p.rect(7, 0, 1, 7, '#b8b4ac'); p.rect(11, 8, 1, 8, '#b8b4ac'); p.rect(0, 0, 16, 1, '#ecead4'); p.set(3, 3, '#c8c4bc'); },
+  [T.CAVE]: (p) => { fill(p, '#3a3644'); p.rect(2, 5, 3, 1, '#2c2834'); p.rect(9, 11, 4, 1, '#2c2834'); p.set(12, 3, '#4a4656'); p.set(5, 13, '#4a4656'); },
+  [T.CAVE_WALL]: (p) => { fill(p, '#24202c'); obj(p, (o) => { o.ellipse(5, 9, 5, 6, '#3c3648'); o.ellipse(12, 7, 4, 7, '#363042'); }, 0.2, 0.3); },
+  [T.CRYSTAL]: (p) => { D[T.CAVE](p); obj(p, (o) => { o.rect(5, 6, 3, 9, '#8a5ad8'); o.rect(9, 3, 3, 12, '#6a4ac0'); o.set(6, 5, '#c8a8ff'); o.set(10, 2, '#c8a8ff'); }, 0.4, 0.3); },
+  [T.ASH]: (p) => { fill(p, '#4a4444'); p.set(4, 4, '#5a5252'); p.set(11, 10, '#5a5252'); p.set(7, 13, '#3a3434'); p.set(13, 6, '#8a3a2a'); },
+  [T.ASH2]: (p) => { fill(p, '#423c3c'); p.rect(3, 9, 4, 1, '#363030'); p.set(10, 4, '#5a5252'); p.set(2, 2, '#a04a2a'); },
+  [T.CHARRED]: (p) => { D[T.ASH](p); obj(p, (o) => { o.rect(7, 4, 2, 12, '#1e1a1a'); o.line(8, 7, 3, 3, '#1e1a1a'); o.line(8, 6, 13, 2, '#1e1a1a'); }, 0.2, 0.2); },
+  [T.MOUNTAIN]: (p) => { fill(p, '#5a5e6a'); obj(p, (o) => { for (let y = 0; y < 16; y++) { const w = Math.round(y * 0.6) + 2; o.rect(8 - w, y, w * 2, 1, '#6e7380'); } o.rect(6, 0, 4, 3, '#e8eef4'); o.rect(5, 3, 2, 1, '#e8eef4'); }, 0.25, 0.3); },
+  [T.FIELD]: (p) => { fill(p, '#b89a48'); for (let x = 1; x < 16; x += 3) { p.rect(x, 2, 1, 12, '#d8bc60'); p.set(x, 1, '#e8d080'); p.set(x + 1, 8, '#9a7c38'); } },
+  [T.RIVER]: (p) => { fill(p, '#356ea0'); p.rect(1, 4, 5, 1, '#5a96c8'); p.rect(8, 9, 6, 1, '#5a96c8'); p.rect(3, 13, 4, 1, '#2a5a86'); },
+  [T.STATUE]: (p) => { D[T.FROZEN](p); obj(p, (o) => { o.ellipse(8, 3, 2.5, 2.5, '#9aa0a8'); o.rect(6, 6, 5, 6, '#8a9098'); o.rect(5, 7, 1, 4, '#8a9098'); o.rect(11, 6, 2, 1, '#8a9098'); o.rect(6, 12, 2, 4, '#7a8088'); o.rect(9, 12, 2, 3, '#7a8088'); }, 0.25, 0.3); },
+  [T.REDWALL]: (p) => { bricks(p, '#5a2228', '#2a0e12', '#7a3036'); p.set(4, 4, '#c0303a'); p.set(12, 10, '#c0303a'); },
+  [T.TENT]: (p) => { D[T.FOREST](p); obj(p, (o) => { for (let y = 2; y < 15; y++) { const w = Math.round((y - 2) * 0.55) + 1; o.rect(8 - w, y, w * 2, 1, '#8a7a5a'); } o.rect(7, 9, 2, 6, '#2a2420'); }, 0.3, 0.3); },
+  [T.CAVE_GATE]: (p) => { fill(p, '#5a5e6a'); obj(p, (o) => { o.ellipse(8, 9, 8, 8, '#4a4e5a'); o.rect(0, 9, 16, 7, '#4a4e5a'); }, 0.25, 0.3); p.ellipse(8, 11, 5, 5.5, '#05050a'); p.rect(3, 11, 11, 5, '#05050a'); p.set(6, 8, '#8a5ad8'); p.set(10, 7, '#8a5ad8'); },
+  [T.MINE]: (p) => { fill(p, '#5a5e6a'); obj(p, (o) => { o.rect(1, 2, 14, 14, '#6a4a30'); o.rect(1, 2, 14, 2, '#8a6238'); }, 0.25, 0.3); p.rect(4, 5, 8, 11, '#06070c'); p.rect(4, 5, 1, 11, '#5a4030'); p.rect(11, 5, 1, 11, '#5a4030'); },
+  [T.SANDSTONE]: (p) => bricks(p, '#c8a070', '#9a7650', '#e0bc8a'),
+  [T.RUIN_GRAY]: (p) => { D[T.FROZEN](p); obj(p, (o) => { o.rect(1, 4, 14, 12, '#8a8e96'); for (let x = 1; x < 15; x += 4) o.rect(x, 2, 2, 2, '#8a8e96'); o.rect(6, 9, 4, 7, '#5a5e66'); }, 0.25, 0.3); },
   [T.LAMP]: (p) => { cobble(p); obj(p, (o) => { o.rect(7, 5, 2, 11, '#2a2e3a'); o.rect(5, 1, 6, 5, '#2a2e3a'); }); p.rect(6, 2, 4, 3, '#f8d068'); p.rect(6, 2, 4, 1, '#fff2b0'); },
 };
 

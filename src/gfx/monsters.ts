@@ -1,5 +1,7 @@
 import { PB, shade, canvas } from './pixel';
 import { mulberry32 } from '../core/state';
+import { battleFrame, WeaponKind } from './chars';
+import type { Appearance } from '../data/types';
 
 type Drawer = () => PB;
 
@@ -236,17 +238,95 @@ const schatten: Drawer = () => {
   return p;
 };
 
+const frostwolf: Drawer = () => {
+  const p = new PB(26, 17);
+  const fur = '#dfe6ee', furD = '#a8b8c8';
+  p.ellipse(14, 8, 8, 4, fur); p.rect(9, 10, 12, 2, furD);
+  p.ellipse(5, 7, 4, 3, fur); p.rect(1, 8, 5, 2, '#c4cfdc');
+  p.set(4, 6, '#3a6ad8'); p.set(1, 9, '#2a2a3a'); p.set(2, 10, '#f4f8ff');
+  p.set(6, 3, fur); p.set(7, 3, fur); p.set(7, 4, fur); p.set(5, 3, furD);
+  for (const lx of [8, 11, 17, 20]) { p.rect(lx, 11, 2, 4, furD); p.rect(lx, 15, 2, 1, '#6a7a8a'); }
+  p.line(22, 7, 25, 3, fur); p.set(25, 2, '#ffffff');
+  p.set(0, 6, '#c8e0ff'); p.set(1, 4, '#e8f4ff');
+  return p;
+};
+
+const runenwaechter: Drawer = () => {
+  const p = new PB(30, 34);
+  const st = '#7a7e8a', stD = '#5a5e6a';
+  p.rect(9, 2, 12, 9, st); p.rect(11, 5, 3, 2, '#5ad8e8'); p.rect(17, 5, 3, 2, '#5ad8e8');
+  p.rect(6, 11, 18, 13, st); p.rect(12, 14, 6, 6, stD); p.rect(14, 15, 2, 4, '#5ad8e8'); p.rect(13, 16, 4, 1, '#5ad8e8');
+  p.rect(1, 12, 5, 12, stD); p.rect(24, 12, 5, 12, stD); p.rect(0, 22, 7, 5, st); p.rect(23, 22, 7, 5, st);
+  p.rect(8, 24, 6, 9, stD); p.rect(16, 24, 6, 9, stD);
+  p.set(8, 13, '#4a7a3e'); p.set(9, 13, '#4a7a3e'); p.set(21, 18, '#4a7a3e');
+  return p;
+};
+
+const skorpion: Drawer = () => {
+  const p = new PB(30, 20);
+  const c = '#b8875a', d = '#8a6038';
+  p.ellipse(15, 13, 8, 4, c); for (let i = 0; i < 4; i++) p.rect(9 + i * 3, 11, 1, 5, d);
+  // Schwanz über dem Rücken
+  const tail: [number, number][] = [[22, 12], [24, 10], [25, 7], [24, 4], [22, 2], [20, 2]];
+  tail.forEach(([x, y]) => p.rect(x, y, 2, 2, c)); p.set(19, 3, '#e8e0c8'); p.set(18, 4, '#e8e0c8');
+  // Scheren
+  p.line(8, 12, 3, 9, c); p.rect(0, 7, 4, 3, c); p.set(0, 6, d); p.line(8, 14, 3, 16, c); p.rect(0, 15, 4, 3, c);
+  for (const lx of [10, 13, 16, 19]) { p.line(lx, 16, lx - 2, 19, d); }
+  p.set(8, 11, '#1a0a0a');
+  return p;
+};
+
+const lauerer: Drawer = () => {
+  const p = new PB(30, 18);
+  const b = '#2a2438', l = '#3e3650';
+  p.ellipse(16, 8, 10, 4.5, b); p.ellipse(16, 7, 8, 3, l);
+  p.ellipse(5, 7, 4, 3.5, b); p.set(3, 6, '#c8a0ff'); p.set(6, 6, '#c8a0ff'); p.rect(2, 9, 4, 1, '#e8e0f0');
+  for (const lx of [9, 12, 20, 23]) { p.line(lx, 11, lx - 1, 16, b); p.set(lx - 2, 16, '#e8e0f0'); }
+  p.line(26, 7, 29, 2, b); p.line(29, 2, 27, 0, l);
+  for (const [x, y] of [[12, 3], [18, 2], [22, 4]]) p.set(x, y, '#8a62c8');
+  return p;
+};
+
+const blindwurm: Drawer = () => {
+  const p = new PB(34, 20);
+  const c = '#d8c8c0', d = '#a89890';
+  for (let x = 2; x < 32; x++) { const cy = 10 + Math.sin(x / 4) * 3; const th = x < 6 ? 5 : x > 27 ? 2 : 4; for (let y = -th; y <= th; y++) p.set(x, cy + y, y > th - 2 ? d : c); if (x % 4 === 0) p.set(x, cy, d); }
+  p.ellipse(3, 10, 4, 5, c); p.ellipse(2, 10, 2, 3, '#4a1a1a');
+  for (const [x, y] of [[1, 8], [1, 12], [3, 7], [3, 13]]) p.set(x, y, '#f4efe2');
+  return p;
+};
+
+const zeitmotte: Drawer = () => {
+  const p = new PB(18, 14);
+  const w = '#8a8e96', wd = '#6a6e76';
+  p.ellipse(5, 6, 4.5, 5, w); p.ellipse(13, 6, 4.5, 5, w);
+  p.ellipse(5, 6, 2, 2.5, wd); p.ellipse(13, 6, 2, 2.5, wd);
+  p.set(5, 6, '#e8e4dc'); p.set(13, 6, '#e8e4dc');
+  p.rect(8, 3, 2, 9, '#4a4e56'); p.line(8, 3, 6, 0, '#4a4e56'); p.line(9, 3, 11, 0, '#4a4e56');
+  return p;
+};
+
 export const MONSTER_DRAWERS: Record<string, Drawer> = {
   m_aschhund: aschhund, m_kanalwuerger: kanalwuerger, m_kreidekriecher: kreidekriecher, m_hohlmann: hohlmann,
   m_kreidemutter: kreidemutter, m_flanke: flanke, m_sitzer: sitzer, m_gloeckner: gloeckner, m_kloeppel: kloeppel, m_blutgaenger: blutgaenger,
   m_rankenweber: rankenweber, m_gaertnerin: gaertnerin, m_herzrose: herzrose, m_inquisitor: inquisitor,
   m_nachhall: nachhall, m_schatten: schatten,
+  m_frostwolf: frostwolf, m_runenwaechter: runenwaechter, m_skorpion: skorpion, m_lauerer: lauerer, m_blindwurm: blindwurm, m_zeitmotte: zeitmotte,
 };
 
 export function monsterCanvas(key: string): HTMLCanvasElement {
   const pb = MONSTER_DRAWERS[key]();
   pb.bevel(0.28, 0.3);
   pb.outline('#0a0b12');
+  const [c, ctx] = canvas(pb.w, pb.h);
+  pb.draw(ctx, 0, 0);
+  return c;
+}
+
+/** Menschliche Gegner: Kampfpose aus dem Figuren-Generator, Blick nach links. */
+export function humanMonsterCanvas(app: Partial<Appearance>, weapon: WeaponKind): HTMLCanvasElement {
+  const full: Appearance = { gender: 'm', race: 'mensch', beast: 'wolf', skin: '#d29a6e', hair: '#3b2a1c', hairStyle: 'kurz', eyes: '#2a2a3a', beard: 'keiner', build: 'normal', outfit: 'hose', cloth: '#5a4a3a', cloth2: '#2a2420', ...app };
+  const pb = battleFrame(full, 'ready', weapon).mirrorX();
   const [c, ctx] = canvas(pb.w, pb.h);
   pb.draw(ctx, 0, 0);
   return c;
