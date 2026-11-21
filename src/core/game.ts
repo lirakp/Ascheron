@@ -1,3 +1,4 @@
+import { lebensaufgabeProgress } from './events';
 import { G, mulberry32, addItem, newUid, fullHeal, log, stats } from './state';
 import type { DungeonState, ItemInst, Rank } from '../data/types';
 import { MONSTERS } from '../data/monsters';
@@ -57,33 +58,43 @@ const NOUNS: Record<string, string[]> = {
   stone: ['Gruft', 'Grube', 'Halle', 'Kammer'],
   chalk: ['Kreidegrube', 'Kalkhöhle', 'Weißschlucht'],
   sewer: ['Zisterne', 'Abflussgrotte', 'Schlammgrotte'],
+  thorn: ['Rosenhecke', 'Dornengarten', 'Rankenlabyrinth'],
+  memory: ['Gruft', 'Kammer', 'Grube'],
 };
 
 export let freeSpotsRef: [number, number][] = [];
 export function setFreeSpots(s: [number, number][]): void { freeSpotsRef = s; }
 
+const REGION_POOLS: Record<string, { themes: string[]; pools: Record<string, string[]>; where: string; rank?: Rank }> = {
+  rabenmark: { themes: ['memory', 'thorn', 'stone', 'chalk', 'sewer', 'stone'], where: 'im Moor', pools: { stone: ['aschhund', 'hohlmann', 'hohlmann'], chalk: ['kreidekriecher', 'kreidekriecher', 'hohlmann'], sewer: ['kanalwuerger', 'hohlmann'], thorn: ['rankenweber', 'hohlmann'], memory: ['nachhall', 'erinnerungsschatten'] } },
+  schlackenhafen: { themes: ['sewer', 'memory'], where: 'am Hafen', pools: { sewer: ['kanalwuerger', 'bandit'], memory: ['nachhall', 'erinnerungsschatten'] } },
+  aurelsfeste: { themes: ['stone', 'chalk', 'memory', 'stone'], where: 'bei Lumenhall', rank: 'C', pools: { stone: ['bandit', 'hohlmann', 'hohlmann'], chalk: ['kreidekriecher', 'bandit'], memory: ['nachhall', 'erinnerungsschatten'] } },
+  kaldrion: { themes: ['stone', 'stone', 'memory'], where: 'im Gebirge', rank: 'B', pools: { stone: ['frostwolf', 'frostwolf', 'runenwaechter'], memory: ['nachhall', 'erinnerungsschatten'] } },
+  veyrath: { themes: ['sewer', 'stone', 'memory'], where: 'in den Dünen', rank: 'B', pools: { sewer: ['duenenskorpion', 'blindwurm'], stone: ['duenenskorpion', 'sklavenjaeger'], memory: ['nachhall', 'erinnerungsschatten'] } },
+  eschenwacht: { themes: ['thorn', 'stone', 'memory'], where: 'im Wald', rank: 'B', pools: { thorn: ['rankenweber', 'elfenjaeger'], stone: ['elfenjaeger', 'aschhund'], memory: ['nachhall', 'erinnerungsschatten'] } },
+};
+
 export function spawnRandomDungeon(): DungeonState | null {
   const r = Math.random;
+  const region = G.region ?? 'rabenmark';
+  const cfg = REGION_POOLS[region];
+  if (!cfg) return null; // In Nachtklüften, Erstarrten Landen und Dornenreich entstehen keine neuen Dungeons
   const roll = r();
-  const theme = roll < 0.1 ? 'memory' as const : roll < 0.25 ? 'thorn' as const : (['stone', 'chalk', 'sewer', 'stone'] as const)[Math.floor(r() * 4)];
-  const pools: Record<string, string[]> = {
-    stone: ['aschhund', 'hohlmann', 'hohlmann'],
-    chalk: ['kreidekriecher', 'kreidekriecher', 'hohlmann'],
-    sewer: ['kanalwuerger', 'hohlmann'],
-    thorn: ['rankenweber', 'hohlmann'],
-    memory: ['nachhall', 'erinnerungsschatten'],
-  };
-  const pool = pools[theme];
-  const rank: Rank = G.advRank === 'D' ? (r() < 0.75 ? 'D' : 'C') : (r() < 0.5 ? 'C' : 'D');
-  const thorn = theme === 'thorn';
-  const spots = freeSpotsRef.filter(([x, y]) => Object.values(G.dungeons).every((d) => Math.hypot(d.x - x, d.y - y) > 8));
+  // Erinnerungs-Dungeons sind selten (ca. 10 %), Dorn-Dungeons etwa 15 % (wo es sie gibt)
+  let theme = cfg.themes.includes('memory') && roll < 0.1 ? 'memory' : cfg.themes.includes('thorn') && roll < 0.25 ? 'thorn' : cfg.themes.filter((t) => t !== 'memory')[Math.floor(r() * cfg.themes.filter((t) => t !== 'memory').length)];
+  if (!cfg.pools[theme]) theme = Object.keys(cfg.pools)[0];
+  const pool = cfg.pools[theme];
+  const baseRank: Rank = cfg.rank ?? (G.advRank === 'D' ? (r() < 0.75 ? 'D' : 'C') : (r() < 0.5 ? 'C' : 'D'));
+  const thorn = theme === 'thorn', memory = theme === 'memory';
+  const spots = freeSpotsRef.filter(([x, y]) => Object.values(G.dungeons).every((d) => (d.region ?? 'rabenmark') !== region || Math.hypot(d.x - x, d.y - y) > 8));
   if (!spots.length) return null;
   const [x, y] = spots[Math.floor(r() * spots.length)];
   const id = 'z' + Math.floor(G.day) + '_' + Math.floor(r() * 1000);
-  const name = `${PREFIX[Math.floor(r() * PREFIX.length)]} ${NOUNS[theme][Math.floor(r() * NOUNS[theme].length)]} im Moor`;
+  const name = `${PREFIX[Math.floor(r() * PREFIX.length)]} ${NOUNS[theme][Math.floor(r() * NOUNS[theme].length)]} ${cfg.where}`;
+  const rank: Rank = memory ? 'A' : thorn && baseRank === 'D' ? 'C' : baseRank;
   const d: DungeonState = {
-    id, name, theme, rank: theme === 'memory' ? 'A' : thorn ? 'C' : rank, shownRank: thorn ? 'C' : rank, type: theme === 'memory' ? 'Erinnerung' : thorn ? 'Dorn' : 'Physisch', shownType: 'Physisch', story: Math.floor(r() * 3), enemies: pool, boss: theme === 'memory' ? '' : pool[0] + '_elite',
-    rooms: rank === 'D' ? 6 : 8, frist: 18 + Math.floor(r() * 14), solved: false, broken: false, x, y, seed: Math.floor(r() * 99999), generated: true,
+    id, name, theme: theme as DungeonState['theme'], rank, shownRank: memory ? (r() < 0.5 ? 'D' : 'C') : rank, type: memory ? 'Erinnerung' : thorn ? 'Dorn' : 'Physisch', shownType: 'Physisch', story: Math.floor(r() * 3), enemies: pool, boss: memory ? '' : thorn && region === 'rabenmark' ? 'rankenweber_elite' : pool[0] + '_elite',
+    rooms: rank === 'D' ? 6 : 8, frist: 18 + Math.floor(r() * 14), solved: false, broken: false, x, y, seed: Math.floor(r() * 99999), generated: true, region,
   };
   G.dungeons[id] = d;
   log(`Neuer Dungeon gemeldet: ${name}`);
@@ -116,6 +127,7 @@ export function grantLoot(items: string[], gear: ItemInst[]): void {
 
 export function onKill(monsterId: string): void {
   const id = monsterId.replace('_elite', '');
+  lebensaufgabeProgress('kill', id);
   G.kills[id] = (G.kills[id] ?? 0) + 1;
   for (const q of QUESTS) {
     const st = G.quests[q.id];
@@ -128,6 +140,7 @@ export function onKill(monsterId: string): void {
 
 export function onDungeonSolved(id: string): void {
   const d = G.dungeons[id];
+  lebensaufgabeProgress('dungeon', id);
   d.solved = true;
   log(`${d.name} gelöst.`);
   for (const q of QUESTS) {

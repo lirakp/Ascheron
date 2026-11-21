@@ -29,7 +29,7 @@ Die App ist nicht signiert. Windows SmartScreen zeigt deshalb beim ersten Start 
 | Turm (Seitenansicht) | A/D laufen, Leertaste/W springen, W/S an Leitern klettern, E Tafel lesen |
 | Kampf | 1–6 Aktionen, Enter/Leertaste Ziel bestätigen, **Leertaste = Parieren**, **Umschalt = Ausweichen** |
 
-## Was aus der Welt-Bibel umgesetzt ist (Version 0.1, Rabenmark)
+## Was aus der Welt-Bibel umgesetzt ist
 
 - **Charaktererstellung:** Alle Völker der Bibel – Mensch, Zwerg, Tiermensch (Wolf, Fuchs, Katze, Bär, Hase), Elf, Dunkelelf – und ihre Halbwesen (Halbzwerg, Halb-Tiermensch, Halbelf, Halb-Dunkelelf), jeweils männlich oder weiblich. Anpassbar sind Haut, Haar und Fell, Frisur, Augen, Bart, Statur, Kleidung und Farben, dazu fünf Trupp-Rollen. Das Volk bestimmt den Mana-Rang (C bis S), die angeborenen Elemente und eine eigene Technik. Halbwesen haben zwei getrennte Manaflüsse samt *Doppelwirken*. Elfen und Tiermenschen zahlen bei menschlichen Händlern mehr.
 - **Kampf:** Rundenbasiert mit Zeitleiste nach Tempo. Gegnerangriffe werden mit einem Ring angekündigt. **Goldene** Angriffe lassen sich parieren (knappes Fenster; wer alle Treffer pariert, kontert). **Rote** Angriffe kann man nur ausweichen. Präzise Angriffe und Paraden füllen *Schwung* für Techniken.
@@ -52,12 +52,25 @@ Die App ist nicht signiert. Windows SmartScreen zeigt deshalb beim ersten Start 
   - Statt eines Bosses wartet ein Endrätsel. Die Hinweise stammen aus den Schleifen, `H` zeigt die bisher gefundenen. Es gibt drei Geschichten von Menschen, die der Fee etwas bezahlt haben.
   - Nachhall-Hunde: Waffen gehen durch sie hindurch, Zauber wirken nur zu einem Viertel. Ihr Echo wiederholt die letzte Aktion des Trupps, jedes Mal lauter. Stille löscht sie sofort. Kleriker können das Stille-Gebet auch ohne Wind und Schatten sprechen.
 - **Balancing:** Die Kampfformeln liegen in `src/core/combat.ts`. `npm run balance` simuliert Kern- und Bosskämpfe sowie ganze Dungeon-Durchläufe für Anfänger, durchschnittliche und geübte Spieler.
-- **Rabenmark:** Krähenfurt mit sieben Gebäuden, Küste, Moore, Weißer Hang und Nordtor-Ruinen. Dazu Tag und Nacht, Kräuter, Gerüchte, Chronik und die Frist der Verlorenen Königin bis 139 n. S.
+- **Rabenmark:** Krähenfurt mit sieben Gebäuden, der Hollerhof, Küste, Moore, Weißer Hang und Nordtor-Ruinen. Dazu Tag und Nacht, Kräuter, Gerüchte, Chronik und die Frist der Verlorenen Königin bis 139 n. S.
+- **Neun Reiche** mit eigener Karte, Stadt, Gegnern, Bewohnern, Licht und Kampfhintergrund. Gereist wird über die Kartenränder, und jede Reise kostet Tage, in denen die Fristen weiterlaufen.
+  - **Schlackenhafen** (Fähre am Steg): Hochburg der Rostigen Münze, mit den Käfigen.
+  - **Aurelsfeste:** Lumenhall mit Kathedrale, Gildenzentrale und Katakomben.
+  - **Kaldrion:** Frosthald, die Zwergenschmiede Eisenherz mit Runenware, und die alte Mine als Dungeon.
+  - **Veyrath:** Goldwacht mit dem Sklavenmarkt. Dort kann man Liriel, Bruk und Saya freikaufen. Dazu kommt die Zisterne als Dungeon.
+  - **Eschenwacht:** Dornwall mit Kopfgeldbüro und dem Ahnenhain als Dorn-Dungeon.
+  - **Die Nachtklüfte:** verlassene Dunkelelfen-Städte im Dunkeln, mit der Leeren Stadt (Rang A).
+  - **Die Erstarrten Lande:** Hier steht die Zeit still, Fristen ruhen, und Zeitmotten jagen. Dazu kommt der Graue Brunnen als Erinnerungs-Dungeon.
+  - **Das Eiserne Dornenreich:** die Dornfeste. Wer gezeichnet ist, bekommt eine Audienz bei der Verlorenen Königin.
+  - Jede Stadt hat ihr eigenes Auftragsbrett.
+- **Weltereignisse** erscheinen unterwegs mit „!“ und Kompass-Hinweis:
+  - die Feldschmiede des Königs der Stärke mit Lebensaufgabe und Frist
+  - Überfälle, Sklavenkarawanen, Pilgerzüge, fahrende Händlerinnen, Moorlichter, Inquisition, Verschüttete, Zeitrisse, die Fee, Blut-Schatten und vieles mehr
 
 ## Nächste Ausbaustufen
 
-1. Entitäten als Weltereignisse: Feldschmiede des Königs der Stärke, Wolf der Sünden, Sündenklingen
-2. Weitere Reiche: Kaldrion, Aurelsfeste, Veyrath, Eschenwacht, Erstarrte Lande (Zeitmotten)
+1. Wolf der Sünden und Sündenklingen
+2. Krieg mit dem Dornenreich nach Ablauf der Frist
 3. Touch-Steuerung, Musik, mehr Gefährten
 
 ## Aufbau

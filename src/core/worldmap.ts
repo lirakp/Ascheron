@@ -1,5 +1,6 @@
 import { T } from '../gfx/tiles';
 import { mulberry32 } from './state';
+import type { RegionId } from '../data/regions';
 
 export const MW = 100, MH = 70;
 
@@ -13,7 +14,14 @@ export interface WorldMap {
   town: { x0: number; y0: number; x1: number; y1: number };
   moorZone: { x0: number; y0: number; x1: number; y1: number };
   freeSpots: [number, number][];
+  towns: { name: string; x0: number; y0: number; x1: number; y1: number }[];
+  areas: { name: string; x: number; y: number; r: number }[];
+  exits: Exit[];
+  spawns: Partial<Record<RegionId, [number, number]>>;
+  lore: Map<string, string>;
+  npcSpots: [number, number][];
 }
+export interface Exit { x0: number; y0: number; x1: number; y1: number; to: RegionId; label: string }
 
 export const BUILDINGS: Building[] = [
   { x: 17, y: 18, w: 9, h: 5, roof: T.ROOF_G, wall: T.HWALL, label: 'Abenteurergilde', service: 'gilde' },
@@ -125,8 +133,7 @@ export function buildWorld(): WorldMap {
   labels.push({ x: 58, y: 7.4, text: 'Der Dornhag' });
   // Straße nach Osten ins Moor
   for (let x = town.x1; x < MW - 4; x++) { const yy = 31 + Math.round(Math.sin(x / 7) * 2); set(x, yy, T.PATH); set(x, yy + 1, T.PATH); if (get(x, yy - 1) === T.BOG) set(x, yy - 1, T.REED); if (get(x, yy + 2) === T.BOG) set(x, yy + 2, T.REED); }
-  set(MW - 4, 30, T.SIGN); signs.set(`${MW - 4},30`, 'Nach Eschenwacht. Die Grenze ist wegen der Elfenjagd gesperrt. (Weitere Reiche folgen.)');
-  for (let y = 26; y < 38; y++) set(MW - 3, y, T.ROCK);
+  for (let y = 28; y <= 35; y++) for (let x = MW - 6; x < MW; x++) set(x, y, T.PATH);
   // Weg zum Kreidehang
   for (let y = 33; y < 54; y++) { const xx = 80 + Math.round(Math.sin(y / 4) * 1.5); set(xx, y, T.PATH); set(xx + 1, y, T.PATH); }
   for (let y = 53; y < 56; y++) for (let x = 79; x <= 85; x++) if (get(x, y) === T.CHALK || get(x, y) === T.CHALKROCK) if (!(x === 82 && y === 54) && !(y === 53 && x === 82) && x !== 81 && x !== 83) set(x, y, T.CHALK);
@@ -135,8 +142,15 @@ export function buildWorld(): WorldMap {
   for (let y = town.y1; y < MH - 1; y++) for (let x = 28; x <= 29; x++) set(x, y, T.PATH);
   for (let x = 9; x < town.x0; x++) { set(x, 31, T.PATH); set(x, 32, T.PATH); }
   for (let x = 6; x <= 9; x++) { set(x, 31, T.PLANK); set(x, 32, T.PLANK); }
-  set(11, 30, T.SIGN); signs.set('11,30', 'Steg nach Schlackenhafen – Hochburg der Rostigen Münze. (Weitere Orte folgen.)');
-  set(29, MH - 3, T.SIGN); signs.set(`29,${MH - 3}`, 'Nach Aurelsfeste, Sitz des Sanktuariums. Die Straße ist nach dem letzten Ausbruch unpassierbar. (Folgt.)');
+  set(11, 30, T.SIGN); signs.set('11,30', 'Fähre nach Schlackenhafen – Hochburg der Rostigen Münze. Am Ende des Stegs ablegen.');
+  set(27, MH - 3, T.SIGN); signs.set(`27,${MH - 3}`, 'Südstraße nach Veyrath. Goldwacht, Sitz des Konsortiums.');
+  // Hollerhof: Bauernhof im Moor
+  for (let y = 42; y <= 50; y++) for (let x = 58; x <= 70; x++) set(x, y, x > 63 ? T.FIELD : T.GRASS);
+  for (let x = 58; x <= 62; x++) { set(x, 42, T.ROOF_R); set(x, 43, T.ROOF_R); set(x, 44, x % 2 ? T.HWALL : T.WINDOW); }
+  set(60, 44, T.DOOR); doors.set('60,44', { service: 'bauer', label: 'Hollerhof' });
+  for (let x = 57; x <= 71; x++) { set(x, 41, T.FENCE); set(x, 51, T.FENCE); }
+  for (let y = 33; y <= 45; y++) { set(60, y, T.PATH); }
+  labels.push({ x: 64, y: 40.4, text: 'Hollerhof' });
   labels.push({ x: 70, y: 28.5, text: 'Moore von Rabenmark' });
 
   // Kräuter im Moor
@@ -149,5 +163,20 @@ export function buildWorld(): WorldMap {
     if (get(x, y) === T.GRASS || get(x, y) === T.GRASS2) herbs.push({ id: `h${x}_${y}`, x, y });
   }
   for (let y = 5; y < MH - 5; y++) for (let x = 50; x < MW - 6; x++) if ((get(x, y) === T.GRASS || get(x, y) === T.GRASS2) && get(x, y + 1) !== T.BOG) freeSpots.push([x, y]);
-  return { tiles: t, doors, signs, herbs, labels, town, moorZone: { x0: 47, y0: 3, x1: 95, y1: 66 }, freeSpots };
+  const exits: Exit[] = [
+    { x0: MW - 2, y0: 28, x1: MW - 1, y1: 35, to: 'aurelsfeste', label: 'Aurelsfeste' },
+    { x0: 26, y0: MH - 2, x1: 31, y1: MH - 1, to: 'veyrath', label: 'Veyrath' },
+    { x0: 5, y0: 31, x1: 6, y1: 32, to: 'schlackenhafen', label: 'Fähre nach Schlackenhafen' },
+  ];
+  labels.push({ x: MW - 5, y: 30, text: '→ Aurelsfeste' }, { x: 28.5, y: MH - 4.5, text: '→ Veyrath' }, { x: 8, y: 30, text: '→ Schlackenhafen' });
+  for (let x = 26; x <= 31; x++) for (let y = MH - 4; y < MH; y++) set(x, y, T.PATH);
+  const towns = [{ name: 'Krähenfurt', ...town }];
+  const areas = [
+    { name: 'Nordtor-Ruinen', x: 30, y: 5, r: 7 }, { name: 'Der Dornhag', x: 58, y: 10, r: 6 }, { name: 'Fischerhütte am Steg', x: 11, y: 37, r: 4 },
+    { name: 'Weißer Hang', x: 84, y: 57, r: 12 }, { name: 'Hollerhof', x: 64, y: 46, r: 7 }, { name: 'Moore von Rabenmark', x: 72, y: 30, r: 26 }, { name: 'Küste', x: 6, y: 35, r: 7 },
+  ];
+  const spawns: Partial<Record<RegionId, [number, number]>> = { aurelsfeste: [MW - 6, 31], veyrath: [28, MH - 6], schlackenhafen: [10, 31] };
+  const lore = new Map<string, string>();
+  const npcSpots: [number, number][] = [[27, 28], [32, 30], [24, 31], [35, 32], [29, 36], [22, 25], [37, 25], [30, 21]];
+  return { tiles: t, doors, signs, herbs, labels, town, moorZone: { x0: 47, y0: 3, x1: 95, y1: 66 }, freeSpots, towns, areas, exits, spawns, lore, npcSpots };
 }

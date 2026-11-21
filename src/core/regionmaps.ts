@@ -266,7 +266,7 @@ function erstarrt(): WorldMap {
   set(60, 35, T.ENTRANCE); m.labels.push({ x: 60, y: 33.4, text: 'Der Graue Brunnen' });
   m.labels.push({ x: 60, y: 17, text: 'Valmor' });
   m.areas.push({ name: 'Valmor', x: 60, y: 35, r: 18 });
-  road(set, get, exitRect(m, 'w', 35, 'kaldrion', 'Kaldrion'), [60, 36], T.RUIN_GRAY === -1 ? T.PATH : T.FROZEN, [T.STATUE, T.ENTRANCE]);
+  road(set, get, exitRect(m, 'w', 35, 'kaldrion', 'Kaldrion'), [60, 36], T.FROZEN, [T.STATUE, T.ENTRANCE]);
   border(set, T.FROZEN_TREE); clearExits(m, set, T.FROZEN);
   return finish(m, [T.FROZEN]);
 }

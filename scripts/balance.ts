@@ -169,6 +169,16 @@ const S: Scenario[] = [
   { name: 'Gärtnerin', note: 'Duo, Stufe 8, C-Ausrüstung', party: () => party([{ race: 'mensch', cls: 'speer', level: 8, weapon: 'C' }], ['brann'], 8), enemies: ['gaertnerin'], potions: 5 },
   { name: 'Inquisitor', note: 'Duo, Stufe 7, C-Ausrüstung', party: () => party([{ race: 'mensch', cls: 'speer', level: 7, weapon: 'C' }], ['brann'], 7), enemies: ['inquisitor'], potions: 3 },
   { name: 'Freier Dungeon-Anführer (Aschhund)', note: 'Duo, Stufe 4', party: () => party([{ race: 'mensch', cls: 'speer', level: 4 }], ['brann'], 4), enemies: ['aschhund_elite'], potions: 3 },
+  // Reiche
+  { name: 'Aurelsfeste: 3 Wegelagerer', note: 'Duo, Stufe 4', party: () => party([{ race: 'mensch', cls: 'speer', level: 4 }], ['brann'], 4), enemies: ['bandit', 'bandit', 'bandit'], potions: 2 },
+  { name: 'Kaldrion: 3 Frostwölfe', note: 'Duo, Stufe 5, C-Ausrüstung', party: () => party([{ race: 'mensch', cls: 'speer', level: 5, weapon: 'C' }], ['brann'], 5), enemies: ['frostwolf', 'frostwolf', 'frostwolf'], potions: 2 },
+  { name: 'Kaldrion: Runenwächter', note: 'Trio, Stufe 6, C-Ausrüstung', party: () => party([{ race: 'mensch', cls: 'speer', level: 6, weapon: 'C' }], ['brann', 'tamin'], 6), enemies: ['runenwaechter'], potions: 3 },
+  { name: 'Veyrath: 2 Dünenskorpione', note: 'Trio, Stufe 7, C-Ausrüstung', party: () => party([{ race: 'mensch', cls: 'speer', level: 7, weapon: 'C' }], ['brann', 'tamin'], 7), enemies: ['duenenskorpion', 'duenenskorpion'], potions: 3 },
+  { name: 'Veyrath: Sklavenjäger + Bandit', note: 'Duo, Stufe 6, C-Ausrüstung', party: () => party([{ race: 'mensch', cls: 'speer', level: 6, weapon: 'C' }], ['brann'], 6), enemies: ['sklavenjaeger', 'bandit'], potions: 2 },
+  { name: 'Eschenwacht: 2 Elfenjäger', note: 'Trio, Stufe 7, C-Ausrüstung', party: () => party([{ race: 'mensch', cls: 'speer', level: 7, weapon: 'C' }], ['brann', 'tamin'], 7), enemies: ['elfenjaeger', 'elfenjaeger'], potions: 3 },
+  { name: 'Nachtklüfte: 2 Schattenlauerer', note: 'Trio, Stufe 10, C-Ausrüstung', party: () => party([{ race: 'mensch', cls: 'speer', level: 10, weapon: 'C' }], ['brann', 'tamin'], 10), enemies: ['schattenlauerer', 'schattenlauerer'], potions: 4 },
+  { name: 'Erstarrt: 4 Zeitmotten', note: 'Trio, Stufe 9, C-Ausrüstung', party: () => party([{ race: 'mensch', cls: 'speer', level: 9, weapon: 'C' }], ['brann', 'tamin'], 9), enemies: ['zeitmotte', 'zeitmotte', 'zeitmotte', 'zeitmotte'], potions: 3 },
+  { name: 'Erstarrt: Erstarrter Ritter', note: 'Trio, Stufe 10, C-Ausrüstung', party: () => party([{ race: 'mensch', cls: 'speer', level: 10, weapon: 'C' }], ['brann', 'tamin'], 10), enemies: ['erstarrter_ritter'], potions: 4 },
 ];
 
 const N = Number(process.argv[2] ?? 400);

@@ -1,3 +1,5 @@
+import { REGIONS, REGION_ORDER, RegionId } from '../data/regions';
+import { lebensaufgabeInfo } from '../core/events';
 import { G, stats, money, gearOf, maxElements, maxMp2, isHalf, xpForLevel, itemName, save, manaRank, manaRank2 } from '../core/state';
 import type { Member, ItemInst } from '../data/types';
 import { RACES, CLASSES } from '../data/races';
@@ -124,16 +126,23 @@ function renderQuests(el: HTMLElement): void {
     const prog = q.kind === 'collect' ? `${Math.min(G.inv[q.target] ?? 0, q.goal)}/${q.goal}` : q.kind === 'kill' ? `${st.progress}/${q.goal}` : st.status === 'erfuellt' || st.status === 'abgegeben' ? 'gelöst' : 'offen';
     l.appendChild(h('div', { class: 'item' }, h('span', { class: 'name' }, q.name, h('span', { class: 'tag' }, 'Rang ' + q.rank)), h('span', { class: st.status === 'erfuellt' ? 'good' : 'dim' }, st.status === 'abgegeben' ? 'abgeschlossen' : st.status === 'erfuellt' ? 'erfüllt – zur Gilde!' : prog)));
   }
-  if (!l.childNodes.length) l.appendChild(h('div', { class: 'dim' }, 'Keine angenommenen Aufträge. Das Brett hängt in der Abenteurergilde.'));
+  if (!l.childNodes.length) l.appendChild(h('div', { class: 'dim' }, 'Keine angenommenen Aufträge. Jede Stadt hat ihr eigenes Auftragsbrett in der Gilde.'));
+  const la = lebensaufgabeInfo();
+  if (la) el.appendChild(h('div', { class: 'item', style: 'margin-bottom:8px;border-color:#c86a3a' }, h('span', { class: 'name' }, 'Lebensaufgabe des Königs der Stärke', h('div', { class: 'blood', style: 'font-size:12.5px' }, la))));
   el.appendChild(l);
 }
 
 function renderWorld(el: HTMLElement): void {
   el.appendChild(h('p', { style: 'margin-top:0' }, `Frist der Verlorenen Königin: noch ${queenDaysLeft(G.day)} Tage (bis Frostmond 139 n. S.). Wer sie vorher angreift, wird von der Dornenprinzessin verschlungen.`));
   if (G.blutmond > 0) el.appendChild(h('p', { class: 'blood' }, `Blutmond: noch ${G.blutmond} Tage. Physische Dungeons sind zu Blut-Dungeons geworden – dreifache Monster, kaum Rasträume.`));
+  el.appendChild(h('h3', { class: 'gold', style: 'font-weight:normal;margin:10px 0 4px' }, 'Reiche'));
+  el.appendChild(h('div', { class: 'list' }, ...REGION_ORDER.map((id) => { const r = REGIONS[id]; const seen = (G.visited ?? []).includes(id);
+    return h('div', { class: 'item' }, h('span', { class: 'name' }, seen ? r.name : '???', h('span', { class: 'tag' }, 'Gefahr ' + r.rank), id === G.region ? h('span', { class: 'tag good' }, 'hier') : null), h('span', { class: 'dim', style: 'font-size:12px;max-width:460px' }, seen ? r.desc : 'Noch nicht bereist.')); })));
+  el.appendChild(h('h3', { class: 'gold', style: 'font-weight:normal;margin:10px 0 4px' }, 'Dungeons'));
   const l = h('div', { class: 'list' });
   for (const d of Object.values(G.dungeons)) {
-    l.appendChild(h('div', { class: 'item' }, h('span', { class: 'name' }, d.name, h('span', { class: 'tag' }, d.revealed ? `${d.type} · Rang ${d.rank}` : `${d.shownType ?? d.type} · Rang ${d.shownRank}`)),
+    if (d.region && !(G.visited ?? []).includes(d.region)) continue;
+    l.appendChild(h('div', { class: 'item' }, h('span', { class: 'name' }, d.name, d.region && d.region !== 'rabenmark' ? h('span', { class: 'tag' }, REGIONS[d.region as RegionId].name) : null, h('span', { class: 'tag' }, d.revealed ? `${d.type} · Rang ${d.rank}` : `${d.shownType ?? d.type} · Rang ${d.shownRank}`)),
       h('span', { class: d.solved ? 'good' : d.broken ? 'blood' : d.frist <= 7 ? 'blood' : 'dim' }, d.solved ? 'gelöst' : d.broken ? 'AUSGEBROCHEN' : `Frist: ${d.frist} Tage`)));
   }
   el.appendChild(l);

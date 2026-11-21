@@ -103,6 +103,55 @@ const BG: Record<string, (c: Ctx) => void> = {
     R(c, 0, 110, 320, 70, '#2e3140'); R(c, 0, 110, 320, 3, '#4a4e60');
     for (let x = 0; x < 320; x += 40) R(c, x, 113, 1, 67, '#202330');
   },
+
+  holy: (c) => {
+    bands(c, ['#6a7aa8', '#8494bc', '#a0aecc', '#c0c8d8', '#dcdcd0'], 0, 104);
+    // Kathedrale in der Ferne
+    sprite(c, 90, 76, (p) => { p.rect(20, 30, 50, 46, '#d8d0b8'); p.rect(38, 0, 14, 76, '#e4dcc4'); p.rect(44, 0, 2, 6, '#f0c35a'); p.rect(8, 40, 14, 36, '#c8c0a8'); p.rect(68, 40, 14, 36, '#c8c0a8'); p.ellipse(45, 40, 7, 7, '#5a8ac8'); for (const x of [26, 60]) p.rect(x, 50, 4, 10, '#4a5a7a'); }, 115, 30);
+    // Weizenfelder
+    c.fillStyle = '#b89a48'; c.beginPath(); c.moveTo(0, 104); for (let x = 0; x <= 320; x += 16) c.lineTo(x, 96 + Math.round(Math.sin(x / 29) * 3)); c.lineTo(320, 110); c.lineTo(0, 110); c.fill();
+    for (let i = 0; i < 60; i++) R(c, (i * 37) % 320, 96 + ((i * 13) % 10), 1, 3, '#e0c060');
+    for (const x of [30, 290]) sprite(c, 8, 30, (p) => { p.rect(3, 4, 2, 26, '#6a5030'); p.rect(0, 2, 8, 6, '#d8d0b8'); p.set(4, 4, '#f0c35a'); }, x, 76);
+  },
+  snow: (c) => {
+    bands(c, ['#5a6a88', '#6e7e9a', '#8494ae', '#9eacc2', '#b8c4d4'], 0, 104);
+    for (const [x, w, h] of [[-30, 130, 80], [80, 110, 64], [170, 140, 88], [280, 90, 60]]) sprite(c, w, h + 2, (p) => { for (let y = 0; y < h; y++) { const half = (w / 2) * (y / h); p.rect(Math.round(w / 2 - half), y, Math.round(half * 2), 1, y < h * 0.3 ? '#eef2f6' : '#6a7488'); } }, x, 104 - h);
+    for (const x of [14, 60, 240, 300]) sprite(c, 18, 34, (p) => { for (let y = 0; y < 28; y++) { const half = 1 + (y % 9) * 0.9; p.rect(Math.round(9 - half), y, Math.round(half * 2), 1, y % 9 < 2 ? '#e8eef4' : '#2c4a3a'); } p.rect(8, 28, 2, 6, '#4a3424'); }, x, 72);
+    for (let i = 0; i < 50; i++) R(c, (i * 61) % 320, (i * 23) % 100, 1, 1, '#f4f8fc');
+  },
+  desert: (c) => {
+    bands(c, ['#c86a3a', '#d8844a', '#e4a05a', '#ecbc72', '#f0d090'], 0, 104);
+    sprite(c, 26, 26, (p) => { p.ellipse(12.5, 12.5, 11.5, 11.5, '#fff0c0'); }, 60, 20);
+    for (const [x, w, hh, col] of [[-40, 200, 22, '#c8945a'], [120, 240, 28, '#d4a468'], [40, 180, 14, '#dcb070']] as [number, number, number, string][]) { c.fillStyle = col; c.beginPath(); c.moveTo(x, 106); c.quadraticCurveTo(x + w / 2, 106 - hh * 2, x + w, 106); c.fill(); }
+    for (const x of [30, 250]) sprite(c, 30, 44, (p) => { p.rect(14, 10, 3, 34, '#7a5a34'); for (const [dx, dy] of [[-12, 4], [12, 4], [-8, -2], [8, -2], [0, -5]]) p.line(15, 10, 15 + dx, 10 + dy + 6, '#4a7a3a'); }, x, 62);
+    sprite(c, 50, 40, (p) => { p.rect(4, 10, 42, 30, '#c8a070'); p.rect(0, 6, 50, 6, '#d8b080'); p.rect(20, 22, 10, 18, '#5a3a24'); for (const x of [8, 36]) p.rect(x, 16, 5, 6, '#5a3a24'); }, 150, 66);
+  },
+  forest: (c) => {
+    bands(c, ['#1a2a24', '#203428', '#263e2e', '#2e4834', '#36523a'], 0, 104);
+    for (let i = 0; i < 9; i++) { const x = i * 38 - 12, hh = 70 + (i * 17) % 26; sprite(c, 34, hh, (p) => { p.rect(14, hh - 30, 6, 30, '#4a3424'); p.ellipse(17, 22, 16, 22, i % 2 ? '#2e5a34' : '#376a3a'); p.ellipse(10, 30, 9, 10, '#2a5030'); p.ellipse(25, 28, 9, 10, '#3a7040'); }, x, 106 - hh); }
+    for (let i = 0; i < 16; i++) R(c, (i * 47) % 320, 20 + ((i * 19) % 60), 1, 6 + (i % 3) * 4, 'rgba(240,230,170,0.25)');
+  },
+  cave: (c) => {
+    R(c, 0, 0, 320, 110, '#14121c');
+    for (let i = 0; i < 14; i++) { const x = i * 24 + ((i * 7) % 10), hh = 14 + (i * 13) % 30; sprite(c, 14, hh, (p) => { for (let y = 0; y < hh; y++) { const w = Math.max(1, Math.round(7 * (1 - y / hh))); p.rect(7 - w, y, w * 2, 1, '#2a2634'); } }, x, 0); }
+    for (const [x, y, col] of [[40, 60, '#8a5ac8'], [120, 80, '#5ac8c8'], [270, 70, '#8a5ac8'], [200, 50, '#c85aa8']] as [number, number, string][]) sprite(c, 10, 16, (p) => { p.rect(3, 2, 4, 14, col); p.rect(0, 8, 3, 8, shade(col, -0.2)); p.rect(7, 6, 3, 10, shade(col, 0.15)); }, x, y);
+    // Ruinen der Höhlenstadt
+    sprite(c, 80, 50, (p) => { p.rect(0, 20, 20, 30, '#2e2a3a'); p.rect(30, 6, 22, 44, '#34304a'); p.rect(60, 26, 20, 24, '#2e2a3a'); for (const [x, y] of [[6, 28], [36, 14], [42, 30], [66, 34]]) p.rect(x, y, 4, 6, '#0a0810'); }, 120, 58);
+  },
+  frozen: (c) => {
+    bands(c, ['#7a8090', '#868c9a', '#9298a4', '#a0a4ac', '#aeb0b4'], 0, 104);
+    // Wolke steht still, Vogel in der Luft erstarrt
+    sprite(c, 60, 16, (p) => { p.ellipse(30, 8, 28, 7, '#c0c2c8'); }, 40, 18);
+    sprite(c, 9, 5, (p) => { p.line(0, 0, 4, 3, '#3a3c44'); p.line(4, 3, 8, 0, '#3a3c44'); }, 200, 30);
+    for (const [x, hh] of [[20, 50], [100, 64], [190, 44], [270, 58]]) sprite(c, 24, hh, (p) => { p.rect(2, 10, 20, hh - 10, '#8a8c94'); p.rect(0, 6, 24, 6, '#9a9ca4'); p.rect(6, hh - 18, 6, 18, '#5a5c64'); }, x, 106 - hh);
+    for (const x of [70, 160, 240]) sprite(c, 12, 26, (p) => { p.ellipse(6, 4, 3, 3, '#a0a2a8'); p.rect(3, 7, 6, 12, '#a0a2a8'); p.rect(3, 19, 2, 7, '#a0a2a8'); p.rect(7, 19, 2, 7, '#a0a2a8'); p.line(9, 9, 12, 4, '#a0a2a8'); }, x, 80);
+  },
+  ash: (c) => {
+    bands(c, ['#1a0c0c', '#2a1210', '#3a1a14', '#4a2418', '#5a3020'], 0, 104);
+    moonAt(c, 250, 16, '#c86040');
+    sprite(c, 120, 70, (p) => { p.rect(10, 20, 100, 50, '#2a1418'); for (let x = 10; x < 110; x += 12) p.rect(x, 12, 6, 10, '#2a1418'); p.rect(50, 0, 20, 70, '#341a1e'); p.rect(56, 40, 8, 30, '#0a0406'); p.rect(58, 6, 4, 4, '#e86040'); }, 100, 36);
+    for (let i = 0; i < 40; i++) R(c, (i * 67) % 320, (i * 29) % 104, 1, 1, i % 3 ? '#8a7a70' : '#e86040');
+  },
 };
 
 // Perspektivischer Kampfboden: Platten mit Fugen, die zum Fluchtpunkt laufen.
@@ -115,6 +164,13 @@ const FLOOR: Record<string, { base: string; alt: string; line: string; lip: stri
   thorn: { base: '#4a5e3a', alt: '#435636', line: '#2c3c24', lip: '#16200f', light: '#62784a', edge: '#c0303a' },
   memory: { base: '#5c6474', alt: '#566070', line: '#3a4050', lip: '#1c2030', light: '#7a8296' },
   tower: { base: '#3e4252', alt: '#383c4b', line: '#23252f', lip: '#101118', light: '#585c70' },
+  holy: { base: '#c8bfa4', alt: '#bdb498', line: '#8e8672', lip: '#5a5444', light: '#e4dcc4', edge: '#f0c35a' },
+  snow: { base: '#d4dce6', alt: '#c6d0dc', line: '#98a4b4', lip: '#5a6478', light: '#f0f4f8' },
+  desert: { base: '#d8b070', alt: '#cca464', line: '#a07a44', lip: '#6a4a24', light: '#ecc888' },
+  forest: { base: '#4a5a34', alt: '#43532f', line: '#2c381f', lip: '#141c0e', light: '#627a44', edge: '#3a6a3a' },
+  cave: { base: '#34304a', alt: '#2e2a42', line: '#1c1a2a', lip: '#0a0810', light: '#4a4462', edge: '#8a5ac8' },
+  frozen: { base: '#8e9098', alt: '#868890', line: '#6a6c74', lip: '#3a3c44', light: '#a8aab0' },
+  ash: { base: '#3a2a26', alt: '#342420', line: '#1e1412', lip: '#0e0806', light: '#54403a', edge: '#e86040' },
 };
 function floor(c: Ctx, kind: string): void {
   const f = FLOOR[kind] ?? FLOOR.stone;

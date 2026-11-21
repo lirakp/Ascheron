@@ -71,6 +71,7 @@ export interface DungeonState {
   shownType?: string; // von außen sichtbarer Typ (Erinnerungs-Dungeons tarnen sich)
   story?: number;
   revealed?: boolean;
+  region?: string;
   enemies: string[];
   boss: string;
   rooms: number;
@@ -103,5 +104,7 @@ export interface GameState {
   nextDungeonDay: number;
   uid: number;
   herbsTaken: string[];
+  region?: string;
+  visited?: string[];
   log: string[];
 }

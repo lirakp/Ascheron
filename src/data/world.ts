@@ -36,6 +36,7 @@ export interface QuestDef {
   kind: 'kill' | 'collect' | 'dungeon';
   target: string; // Monster-ID, Item-ID oder Dungeon-ID
   needRank?: Rank;
+  region?: string; // Auftragsbrett der Gilde in diesem Reich (Standard: Rabenmark)
 }
 
 export const QUESTS: QuestDef[] = [
@@ -53,6 +54,27 @@ export const QUESTS: QuestDef[] = [
     desc: 'Im Wald nordöstlich der Stadt ist ein Dorn-Dungeon gewachsen. Seit die Verlorene Königin auf dem Aschfeld rüstet, meiden ihn alle. Alle zwanzig Schritte eine Falle – nehmt einen Pfadfinder mit.' },
   { id: 'q_nordtor', name: 'Das Nordtor', rank: 'C', kind: 'dungeon', target: 'nordtor', goal: 1, reward: 260, rp: 6, needRank: 'C',
     desc: 'Hinter dem alten Nordtor steht ein Turm, aus dem nachts eine Glocke läutet. Wer zu lange wartet, dem bleibt das Herz stehen. Nur für Rang C.' },
+  // Aurelsfeste
+  { id: 'q_wegelagerer', name: 'Sichere Pilgerwege', rank: 'C', kind: 'kill', target: 'bandit', goal: 5, reward: 160, rp: 3, region: 'aurelsfeste',
+    desc: 'Wegelagerer überfallen Pilger auf dem Weg nach Lumenhall. Die Gildenzentrale zahlt für jeden, der keinen mehr überfällt.' },
+  // Kaldrion
+  { id: 'q_frostwoelfe', name: 'Wölfe am Pass', rank: 'C', kind: 'kill', target: 'frostwolf', goal: 5, reward: 180, rp: 3, region: 'kaldrion',
+    desc: 'Frostwölfe reißen die Packesel der Bergleute. Erlegt fünf von ihnen.' },
+  { id: 'q_mine', name: 'Die verlassene Mine', rank: 'B', kind: 'dungeon', target: 'mine', goal: 1, reward: 420, rp: 7, region: 'kaldrion', needRank: 'C',
+    desc: 'In der Mine östlich von Frosthald hat sich ein Dungeon geöffnet. Die Runenwächter darin gehorchen niemandem mehr.' },
+  // Veyrath
+  { id: 'q_skorpione', name: 'Karawanenschutz', rank: 'B', kind: 'kill', target: 'duenenskorpion', goal: 4, reward: 260, rp: 4, region: 'veyrath',
+    desc: 'Dünenskorpione graben sich an der Karawanenstraße ein. Das Konsortium zahlt – über die Gilde, abzüglich Blutsteuer.' },
+  { id: 'q_zisterne', name: 'Die versunkene Zisterne', rank: 'B', kind: 'dungeon', target: 'zisterne', goal: 1, reward: 480, rp: 7, region: 'veyrath', needRank: 'C',
+    desc: 'Unter einer alten Zisterne westlich von Goldwacht ist ein Dungeon erwacht. Der Wasserhandel steht still.' },
+  // Eschenwacht
+  { id: 'q_hain', name: 'Der Ahnenhain', rank: 'B', kind: 'dungeon', target: 'hain', goal: 1, reward: 520, rp: 8, region: 'eschenwacht', needRank: 'B',
+    desc: 'Ein Dorn-Dungeon im alten Elfenhain. Die Elfenjäger meiden ihn, seit die Königin auf dem Aschfeld steht.' },
+  // Nachtklüfte & Erstarrte Lande (über die Gilde in Frosthald)
+  { id: 'q_leere_stadt', name: 'Die Leere Stadt', rank: 'A', kind: 'dungeon', target: 'leere_stadt', goal: 1, reward: 900, rp: 12, region: 'kaldrion', needRank: 'B',
+    desc: 'Tief in den Nachtklüften liegt eine Stadt der Dunkelelfen, in der sich ein Dungeon geöffnet hat. Nur für Klingen der Krone.' },
+  { id: 'q_brunnen', name: 'Der Graue Brunnen', rank: 'A', kind: 'dungeon', target: 'grauer_brunnen', goal: 1, reward: 1000, rp: 12, region: 'kaldrion', needRank: 'B',
+    desc: 'Mitten in Valmor, in den Erstarrten Landen, liegt ein Brunnen, aus dem niemand zurückkehrt. Von außen ein Rang-C-Dungeon. Die Gilde glaubt das nicht mehr.' },
 ];
 
 export function baseDungeons(): Record<string, DungeonState> {
@@ -65,6 +87,16 @@ export function baseDungeons(): Record<string, DungeonState> {
       enemies: ['nachhall', 'erinnerungsschatten'], boss: '', rooms: 8, frist: 70, solved: false, broken: false, x: 11, y: 37, seed: 63 },
     dornhag: { id: 'dornhag', name: 'Der Dornhag', theme: 'thorn', rank: 'B', shownRank: 'B', type: 'Dorn',
       enemies: ['rankenweber', 'rankenweber', 'hohlmann'], boss: 'gaertnerin', rooms: 9, frist: 90, solved: false, broken: false, x: 58, y: 10, seed: 51 },
+    mine: { id: 'mine', name: 'Die verlassene Mine', theme: 'stone', rank: 'B', shownRank: 'B', type: 'Physisch', region: 'kaldrion',
+      enemies: ['runenwaechter', 'frostwolf', 'frostwolf'], boss: 'runenwaechter_elite', rooms: 9, frist: 80, solved: false, broken: false, x: 80, y: 18, seed: 71 },
+    zisterne: { id: 'zisterne', name: 'Die versunkene Zisterne', theme: 'sewer', rank: 'B', shownRank: 'B', type: 'Physisch', region: 'veyrath',
+      enemies: ['blindwurm', 'duenenskorpion', 'duenenskorpion'], boss: 'blindwurm_elite', rooms: 9, frist: 80, solved: false, broken: false, x: 22, y: 40, seed: 73 },
+    hain: { id: 'hain', name: 'Der Ahnenhain', theme: 'thorn', rank: 'B', shownRank: 'B', type: 'Dorn', region: 'eschenwacht',
+      enemies: ['rankenweber', 'elfenjaeger', 'rankenweber'], boss: 'gaertnerin', rooms: 9, frist: 100, solved: false, broken: false, x: 14, y: 52, seed: 79 },
+    leere_stadt: { id: 'leere_stadt', name: 'Die Leere Stadt', theme: 'stone', rank: 'A', shownRank: 'A', type: 'Physisch', region: 'nachtkluefte',
+      enemies: ['schattenlauerer', 'schattenlauerer', 'blindwurm'], boss: 'schattenlauerer_elite', rooms: 10, frist: 120, solved: false, broken: false, x: 72, y: 47, seed: 83 },
+    grauer_brunnen: { id: 'grauer_brunnen', name: 'Der Graue Brunnen', theme: 'memory', rank: 'A', shownRank: 'C', type: 'Erinnerung', shownType: 'Physisch', story: 2, region: 'erstarrt',
+      enemies: ['nachhall', 'erinnerungsschatten', 'zeitmotte'], boss: '', rooms: 9, frist: 150, solved: false, broken: false, x: 60, y: 35, seed: 89 },
     nordtor: { id: 'nordtor', name: 'Nordtor-Dungeon', theme: 'stone', rank: 'C', shownRank: 'C', type: 'Physisch',
       enemies: ['sitzer', 'sitzer', 'hohlmann'], boss: 'gloeckner', rooms: 6, frist: 75, solved: false, broken: false, tower: true, x: 30, y: 4, seed: 37 },
   };
@@ -85,7 +117,7 @@ export const TECHS: Record<string, TechDef> = {
   manaschub: { name: 'Manaschub', ap: 1, desc: 'Stellt 40 % des Manas wieder her.' },
 };
 
-export interface Recruit { id: string; name: string; cls: ClassId; level: number; cost: number; where: 'gilde' | 'kirche'; bio: string; app: Appearance; elements: El[]; }
+export interface Recruit { id: string; name: string; cls: ClassId; level: number; cost: number; where: 'gilde' | 'kirche' | 'frei'; bio: string; app: Appearance; elements: El[]; }
 export const RECRUITS: Recruit[] = [
   { id: 'brann', name: 'Brann Kesselfeld', cls: 'bollwerk', level: 2, cost: 60, where: 'gilde',
     bio: 'Mensch, Bronze-Veteran mit verbeultem Turmschild. Schläft vor Türen und schnarcht dabei.',
@@ -94,6 +126,18 @@ export const RECRUITS: Recruit[] = [
   { id: 'ysra', name: 'Ysra vom Schilf', cls: 'speer', level: 2, cost: 70, where: 'gilde',
     bio: 'Fuchs-Tiermensch und freie Speerkämpferin. Trägt ihre Freikaufurkunde stets bei sich.',
     app: { gender: 'w', race: 'tiermensch', beast: 'fuchs', skin: '#e8bb94', hair: '#c4622d', hairStyle: 'zopf', eyes: '#d8a032', beard: 'keiner', build: 'schmal', outfit: 'hose', cloth: '#3f5a3a', cloth2: '#2a3a26' },
+    elements: ['wind'] },
+  { id: 'liriel', name: 'Liriel Sternwind', cls: 'geschuetz', level: 4, cost: 320, where: 'frei',
+    bio: 'Elfe aus dem gerodeten Wald von Eschenwacht. Zwei Jahre Manabatterie in einem Haus in Goldwacht. Sie spricht selten – und zaubert umso lauter.',
+    app: { gender: 'w', race: 'elf', beast: 'wolf', skin: '#f6dfca', hair: '#e8e0d8', hairStyle: 'lang', eyes: '#62c25a', beard: 'keiner', build: 'schmal', outfit: 'robe', cloth: '#3f5a3a', cloth2: '#2a3a26' },
+    elements: ['feuer', 'wind'] },
+  { id: 'bruk', name: 'Bruk vom Felsbach', cls: 'bollwerk', level: 4, cost: 260, where: 'frei',
+    bio: 'Bären-Tiermensch, einst Lastträger und Fallenfutter eines Sklavenjägers. Trägt seine alte Kette als Gürtel – zur Erinnerung.',
+    app: { gender: 'm', race: 'tiermensch', beast: 'baer', skin: '#a9714a', hair: '#5a3a20', hairStyle: 'wuschel', eyes: '#3b2a1c', beard: 'stoppel', build: 'kraeftig', outfit: 'hose', cloth: '#6a5a4a', cloth2: '#3a3028' },
+    elements: ['erde'] },
+  { id: 'saya', name: 'Saya Nachtfeder', cls: 'pfadfinder', level: 4, cost: 290, where: 'frei',
+    bio: 'Halb-Dunkelelfe. Wurde für eine Vollblut-Dunkelelfe gehalten und als „Gottlose“ verkauft. Findet jede Falle – sie hat zu viele selbst ausgelöst.',
+    app: { gender: 'w', race: 'halbdunkelelf', beast: 'wolf', skin: '#6a6c88', hair: '#141018', hairStyle: 'zopf', eyes: '#c8a0ff', beard: 'keiner', build: 'schmal', outfit: 'hose', cloth: '#2a2a3a', cloth2: '#1e1a2a' },
     elements: ['wind'] },
   { id: 'tamin', name: 'Bruder Tamin', cls: 'kleriker', level: 2, cost: 110, where: 'kirche',
     bio: 'Halbelf, von der Kirche „freigekauft“ und nun vermietet. Spricht wenig über die Katakomben.',

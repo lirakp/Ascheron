@@ -66,6 +66,13 @@ export const GEAR: Record<string, ItemDef> = {
   magierrobe: { id: 'magierrobe', name: 'Robe des Geschützmeisters', kind: 'gear', slot: 'armor', rank: 'C', price: 150, stats: { def: 3, mag: 3, mp: 12 }, desc: 'Mit Silberfaden bestickt.' },
   platte: { id: 'platte', name: 'Plattenpanzer (B)', kind: 'gear', slot: 'armor', rank: 'B', price: 480, stats: { def: 13, spd: -2, hp: 20 }, desc: 'Für Frontkämpfer, die Türen bewachen.' },
 
+  runenhammer: { id: 'runenhammer', name: 'Runenhammer (B)', kind: 'gear', slot: 'weapon', rank: 'B', price: 620, stats: { atk: 17, def: 3 }, desc: 'In Eisenherz geschmiedet. Die Runen summen, wenn er trifft.' },
+  zwergenspeer: { id: 'zwergenspeer', name: 'Pass-Speer (B)', kind: 'gear', slot: 'weapon', rank: 'B', price: 600, stats: { atk: 16, spd: 2 }, desc: 'Für Frostwölfe gemacht.' },
+  runenstab: { id: 'runenstab', name: 'Runenstab (B)', kind: 'gear', slot: 'weapon', rank: 'B', price: 640, stats: { atk: 4, mag: 12, mp: 18 }, desc: 'Ein Stab mit eingelassenem Runenstein.' },
+  bergarmbrust: { id: 'bergarmbrust', name: 'Bergarmbrust (B)', kind: 'gear', slot: 'weapon', rank: 'B', price: 620, stats: { atk: 16, spd: 1 }, desc: 'Zwergische Mechanik, schwer und tödlich.' },
+  zwergenpanzer: { id: 'zwergenpanzer', name: 'Zwergenpanzer (B)', kind: 'gear', slot: 'armor', rank: 'B', price: 560, stats: { def: 14, hp: 30, spd: -1 }, desc: 'Lamellen aus Eisenherz-Stahl.' },
+  runenrobe: { id: 'runenrobe', name: 'Runenbestickte Robe (B)', kind: 'gear', slot: 'armor', rank: 'B', price: 540, stats: { def: 7, mag: 6, mp: 20 }, desc: 'Jede Rune ein Schutzzeichen.' },
+  runentalisman: { id: 'runentalisman', name: 'Runentalisman (B)', kind: 'gear', slot: 'trinket', rank: 'B', price: 480, stats: { def: 5, hp: 25 }, desc: 'Ein Erbstück aus den Minen von Kaldrion.' },
   bronzering: { id: 'bronzering', name: 'Bronzering', kind: 'gear', slot: 'trinket', rank: 'D', price: 50, stats: { hp: 12 }, desc: 'Ein schlichter Ring.' },
   amulett: { id: 'amulett', name: 'Sanktuariums-Amulett', kind: 'gear', slot: 'trinket', rank: 'C', price: 150, stats: { mag: 3, mp: 8 }, desc: 'Gesegnet. Angeblich.' },
   krallenkette: { id: 'krallenkette', name: 'Krallenkette', kind: 'gear', slot: 'trinket', rank: 'C', price: 130, stats: { atk: 3, spd: 1 }, desc: 'Aus Aschhundzähnen.' },

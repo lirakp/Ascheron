@@ -1,4 +1,4 @@
-import { G, money, priceFor, addItem, makeMember, addMember, save, itemName, rankAtLeast, newUid, fullHeal, log, isHalf } from '../core/state';
+import { G, money, priceFor, addItem, makeMember, addMember, save, itemName, rankAtLeast, newUid, fullHeal, log, isHalf, stats } from '../core/state';
 import type { El, ItemInst, Rank } from '../data/types';
 import { ITEMS, GEAR, gearDefToInst, ACTIVATION_FEE, statLine } from '../data/items';
 import { ELEMENT_BOOKS, EL_NAME, EL_COLOR } from '../data/magic';
@@ -12,7 +12,12 @@ import { SFX } from '../core/sfx';
 import { charPortrait } from '../gfx/chars';
 import { slot, ico, ITEM_ICON, gearIcon } from '../gfx/icons';
 
-export interface ServiceCtx { onEvents: (ev: WorldEvent[]) => void; }
+export interface ServiceCtx { onEvents: (ev: WorldEvent[]) => void; region?: string }
+
+const TOWN: Record<string, string> = { rabenmark: 'Krähenfurt', schlackenhafen: 'Schlackenhafen', aurelsfeste: 'Lumenhall', kaldrion: 'Frosthald', veyrath: 'Goldwacht', eschenwacht: 'Dornwall', dornenreich: 'Dornfeste' };
+const townName = () => TOWN[G.region ?? 'rabenmark'] ?? 'Krähenfurt';
+/** Zwergische Ware gibt es nur in Eisenherz */
+const RUNE_GEAR = ['runenhammer', 'zwergenspeer', 'runenstab', 'bergarmbrust', 'zwergenpanzer', 'runenrobe', 'runentalisman'];
 
 function pay(cost: number): boolean {
   if (G.silver < cost) { toast('Nicht genug Geld.', 'bad'); return false; }
@@ -57,12 +62,13 @@ function gilde(): void {
     return;
   }
   const r = G.advRank;
-  tabbed('Abenteurergilde von Krähenfurt', `„10 % Blutsteuer auf jede Quest und jedes Beutestück.“ – Dein Rang: ${r} (${RANK_META[r].title}), ${G.rp} Rangpunkte`, [
+  tabbed(G.region === 'aurelsfeste' ? 'Gildenzentrale von Lumenhall' : `Abenteurergilde von ${townName()}`, `„10 % Blutsteuer auf jede Quest und jedes Beutestück.“ – Dein Rang: ${r} (${RANK_META[r].title}), ${G.rp} Rangpunkte`, [
     ['Auftragsbrett', (el, rr) => {
       const l = h('div', { class: 'list' });
       for (const q of QUESTS) {
         const st = G.quests[q.id];
         if (st.status === 'abgegeben') continue;
+        if ((q.region ?? 'rabenmark') !== (G.region ?? 'rabenmark') && st.status === 'offen') continue;
         const locked = q.needRank && !rankAtLeast(G.advRank, q.needRank);
         const ready = st.status === 'erfuellt' || (st.status === 'angenommen' && questCollectReady(q.id));
         const net = Math.round(q.reward * 0.9);
@@ -154,7 +160,7 @@ function kirche(ctx: ServiceCtx): void {
     return;
   }
   const hasCleric = G.party.some((m) => m.cls === 'kleriker');
-  tabbed('Kapelle des Sanktuariums', 'Aurelion, Gott der Magie und des Lichts, wacht über Krähenfurt. Angeblich.', [
+  tabbed(G.region === 'aurelsfeste' ? 'Kathedrale des Lichts' : 'Kapelle des Sanktuariums', G.region === 'aurelsfeste' ? 'Tausend Kerzen. Der Hochaltar des Sanktuariums – hier ist die Spende Pflicht und das Licht billiger.' : `Aurelion, Gott der Magie und des Lichts, wacht über ${townName()}. Angeblich.`, [
     ['Heilung', (el, rr) => {
       el.appendChild(h('p', {}, 'Ein Kleriker legt dem Trupp die Hände auf. Die Kirche nimmt eine „Spende“.'));
       const healCost = G.party[0].tattoo ? 40 : 8;
@@ -247,6 +253,7 @@ function haendler(): void {
     ['Ausrüstung', (el, rr) => {
       const l = h('div', { class: 'list' });
       for (const d of Object.values(GEAR)) {
+        if (RUNE_GEAR.includes(d.id)) continue;
         if (d.rank === 'B' && !rankAtLeast(G.advRank, 'B')) continue;
         const pr = Math.round(priceFor(d.price) * (dwarf ? 0.9 : 1));
         l.appendChild(h('div', { class: 'item' }, slot(gearIcon(d.id, d.slot!, d.name)), h('span', { class: 'name' }, d.name, h('span', { class: 'tag' }, `${d.slot === 'weapon' ? 'Waffe' : d.slot === 'armor' ? 'Rüstung' : 'Talisman'} · ${d.rank}`)), h('span', { class: 'dim', style: 'font-size:12px' }, statLine(d.stats!)), h('span', { class: 'gold' }, money(pr)),
@@ -279,7 +286,7 @@ const RUMORS = [
   'Der Wolf der Sünden weiß, wer welche Sündenklinge trägt. Darum hassen ihn die Kunden des Schmieds so sehr.',
 ];
 function gasthaus(ctx: ServiceCtx): void {
-  tabbed('Gasthaus „Zur Krähe“', 'Rauch, nasse Mäntel und Gerüchte.', [
+  tabbed(G.region === 'rabenmark' || !G.region ? 'Gasthaus „Zur Krähe“' : `Gasthaus von ${townName()}`, 'Rauch, nasse Mäntel und Gerüchte.', [
     ['Übernachten', (el) => {
       el.appendChild(h('p', {}, 'Ein Bett, eine Suppe, ein Tag vergeht. Der Trupp ist danach vollständig erholt (und das Spiel gespeichert). Bedenke: Auch die Fristen der Dungeons laufen weiter.'));
       el.appendChild(btn(`Übernachten (${money(10)})`, () => {
@@ -360,7 +367,165 @@ export function openService(service: string, ctx: ServiceCtx): void {
       { who: 'Mutter Hesse', text: 'Wenn du da drin einen findest, der eine Eisenplakette mit unserem Zeichen trägt… bring sie zurück. Bitte.' },
     ]);
     case 'haus': return dialog([{ who: 'Bewohner', text: 'Geh weiter. Seit der Kanal gluckert, öffnen wir niemandem mehr.' }]);
+    case 'bauer': return bauer(ctx);
+    case 'sklavenmarkt': return sklavenmarkt();
+    case 'zwergenschmiede': return zwergenschmiede();
+    case 'katakomben': return katakomben();
+    case 'kopfgeld': return kopfgeld();
+    case 'koenigin': return koenigin();
+    case 'waffenkammer': return dialog([{ who: 'Waffenmeister', text: 'Rohlinge aus den Dorn-Gärten, Reihe um Reihe. Rang A, jede Klinge. Für das Heer der Königin – nicht für Fremde.' }, { who: 'Waffenmeister', text: G.inv.dornsiegel ? '„…Du trägst ihr Siegel. Na gut. Sieh dich um, aber fass nichts an.“' : '„Raus.“' }]);
+    case 'kaserne': return dialog([{ who: 'Hauptfrau', text: 'Dreitausend Soldaten. Jeden Monat mehr. Die Frist läuft bis 139 nach dem Schwur. Danach marschieren wir.' }, { who: 'Hauptfrau', text: 'Ihr Menschen habt uns aus euren Städten gejagt. Jetzt haben wir eine eigene.' }]);
+    default: return dialog([{ who: 'Tür', text: 'Verschlossen.' }]);
   }
+}
+
+
+// ---------------- Hollerhof (Bauer) ----------------
+function bauer(ctx: ServiceCtx): void {
+  tabbed('Hollerhof', 'Ein Bauernhof am Rand der Moore. Es riecht nach Heu und Torfrauch.', [
+    ['Hofladen', (el, rr) => {
+      el.appendChild(h('p', { class: 'dim', style: 'margin-top:0;font-size:13px' }, 'Bäuerin Hilde verkauft Proviant billiger als die Stadt – und kauft Moorkraut.'));
+      const pr = Math.max(1, Math.round(priceFor(ITEMS.proviant.price) * 0.7));
+      const herbs = G.inv.moorkraut ?? 0;
+      el.appendChild(h('div', { class: 'list' },
+        h('div', { class: 'item' }, slot(ITEM_ICON.proviant ?? 'bag'), h('span', { class: 'name' }, 'Proviant', h('span', { class: 'tag' }, `hast ${G.inv.proviant ?? 0}`)), h('span', { class: 'gold' }, money(pr)),
+          btn('Kaufen', () => { if (pay(pr)) { addItem('proviant'); rr(); } }, { cls: 'small' }), btn('×10', () => { if (pay(pr * 10)) { addItem('proviant', 10); rr(); } }, { cls: 'small' })),
+        h('div', { class: 'item' }, slot(ITEM_ICON.moorkraut ?? 'herb'), h('span', { class: 'name' }, `Moorkraut ×${herbs}`), h('span', { class: 'gold' }, 'je ' + money(3)),
+          btn('alle verkaufen', () => { G.silver += herbs * 3; delete G.inv.moorkraut; SFX.coin(); rr(); }, { cls: 'small', disabled: !herbs }))));
+    }],
+    ['Feldarbeit', (el) => {
+      el.appendChild(h('p', {}, 'Einen halben Tag Torf stechen und Zäune flicken. Ehrliche Arbeit, schlechter Lohn: 12 Silber und eine warme Mahlzeit.'));
+      el.appendChild(btn('Mit anpacken', () => {
+        const ev = advanceTime(0.5); G.silver += 12; for (const m of G.party) { const mx = stats(m).hp; m.hp = Math.min(mx, m.hp + Math.round(mx * 0.3)); }
+        SFX.coin(); toast('+12 Silber. Die Suppe war gut.', 'big'); ctx.onEvents(ev); updateHud();
+      }));
+    }],
+    ['Reden', (el) => {
+      el.appendChild(h('p', { style: 'font-style:italic' }, G.flags.hollerhofGerettet ? '„Ohne dich hätten die Aschhunde die Ziegen geholt. Und dann die Kinder. Komm wieder, wann du willst.“' : '„Nachts heulen die Aschhunde an unserem Zaun. Die Gilde kommt nicht so weit raus. Für Bauern kommt nie jemand.“'));
+      el.appendChild(h('p', { style: 'font-style:italic' }, '„Mein Sohn ist zur Feldschmiede gegangen, als sie im Moor glühte. Er kam stark zurück. Und dann gar nicht mehr.“'));
+    }],
+  ]);
+}
+
+// ---------------- Sklavenmarkt ----------------
+function sklavenmarkt(): void {
+  const here = G.region === 'schlackenhafen' ? ['bruk', 'saya'] : ['liriel', 'bruk', 'saya'];
+  const elfish = ['elf', 'halbelf', 'dunkelelf', 'halbdunkelelf'].includes(G.party[0].app.race);
+  tabbed(G.region === 'schlackenhafen' ? 'Die Käfige' : 'Sklavenmarkt von Goldwacht', 'Eisen, Ketten, Preistafeln. Die Gesetze erlauben es. Das macht es nicht besser.', [
+    ['Käfige', (el, rr) => {
+      if (elfish) el.appendChild(h('p', { class: 'blood', style: 'margin-top:0' }, 'Der Händler mustert deine Ohren. „Du stehst auf der falschen Seite der Gitter, weißt du das?“'));
+      el.appendChild(h('p', { class: 'dim', style: 'font-size:13px' }, 'Freikaufen kostet viel. Wer frei ist, darf gehen – oder dir folgen, ohne Lohn. Die Urkunde stellt das Konsortium aus.'));
+      const l = h('div', { class: 'list' });
+      for (const rc of RECRUITS.filter((r) => here.includes(r.id))) {
+        const done = G.flags['frei_' + rc.id] || G.party.some((m) => m.id === rc.id);
+        const price = priceFor(rc.cost);
+        l.appendChild(h('div', { class: 'item' }, charPortrait(rc.app, 2, 0),
+          h('div', { class: 'name' }, h('div', {}, rc.name, h('span', { class: 'tag' }, `${RACES[rc.app.race].name} · ${CLASSES[rc.cls].short} · Stufe ${rc.level}`)), h('div', { class: 'dim', style: 'font-size:12.5px' }, rc.bio)),
+          done ? h('span', { class: 'dim' }, 'frei') : btn(`Freikaufen (${money(price)})`, () => {
+            if (!pay(price)) return;
+            G.flags['frei_' + rc.id] = true; G.rep.konsortium += 1;
+            if (G.party.length >= 3) { toast(`${rc.name} ist frei. „Ich finde dich, wenn du Platz hast.“ (Gilde → Gefährten)`, 'big', 4500); rr(); return; }
+            const m = makeMember(rc.id, rc.name, rc.app, rc.cls, Math.max(rc.level, G.party[0].level - 1), [...rc.elements, ...RACES[rc.app.race].native]);
+            addMember(m); toast(`${rc.name} ist frei – und folgt dir.`, 'big', 4000); log(`${rc.name} freigekauft.`); rr();
+          }, { cls: 'small' })));
+      }
+      el.appendChild(l);
+    }],
+    ['Gerüchte', (el) => {
+      el.appendChild(h('p', { style: 'font-style:italic' }, '„Die Karawanen kommen über die Südstraße. Bewacht von Sklavenjägern. Wer eine überfällt, macht sich Feinde im Konsortium – und Freunde in den Käfigen.“'));
+    }],
+  ]);
+}
+
+// ---------------- Eisenherz ----------------
+function zwergenschmiede(): void {
+  const dwarf = G.party[0].app.race === 'zwerg' || G.party[0].app.race === 'halbzwerg';
+  tabbed('Schmiede von Eisenherz', dwarf ? '„Ein Kind des Steins! Für dich die Hälfte vom Aufschlag.“' : '„Bis Rang B, ehrlicher Stahl. Mehr kann Stahl nicht.“', [
+    ['Runenware', (el, rr) => {
+      const l = h('div', { class: 'list' });
+      for (const id of RUNE_GEAR) {
+        const d = GEAR[id];
+        const pr = Math.round(priceFor(d.price) * (dwarf ? 0.8 : 1));
+        const locked = !rankAtLeast(G.advRank, 'C');
+        l.appendChild(h('div', { class: 'item' }, slot(gearIcon(d.id, d.slot!, d.name)), h('span', { class: 'name' }, d.name, h('span', { class: 'tag' }, d.slot === 'weapon' ? 'Waffe' : d.slot === 'armor' ? 'Rüstung' : 'Talisman')), h('span', { class: 'dim', style: 'font-size:12px' }, statLine(d.stats!)), h('span', { class: 'gold' }, money(pr)),
+          btn(locked ? 'ab Rang C' : 'Kaufen', () => { if (pay(pr)) { G.gear.push(gearDefToInst(d.id, newUid())); toast(`${d.name} gekauft.`); rr(); } }, { cls: 'small', disabled: locked })));
+      }
+      el.appendChild(l);
+    }],
+    ['Runensteine', (el, rr) => {
+      const n = G.inv.runenstein ?? 0;
+      el.appendChild(h('p', {}, 'Die Zwerge kaufen Runensteine aus den alten Stollen zurück – 140 Silber das Stück. Oder sie schleifen einen in deine Waffe: +3 Angriff.'));
+      el.appendChild(btn(n ? `${n} Runenstein(e) verkaufen (${money(n * 140)})` : 'Keine Runensteine', () => { G.silver += n * 140; delete G.inv.runenstein; SFX.coin(); rr(); }, { disabled: !n }));
+      const w = G.gear.find((g) => g.uid === G.party[0].equip.weapon);
+      el.appendChild(h('div', { style: 'margin-top:8px' }, btn(w ? `In ${w.name} einschleifen (1 Runenstein + ${money(60)})` : 'Keine Waffe angelegt', () => {
+        if (!w || !n) { toast('Du brauchst einen Runenstein.', 'bad'); return; }
+        if ((w as { runed?: boolean }).runed) { toast('Diese Waffe trägt schon eine Rune.', 'bad'); return; }
+        if (!pay(60)) return;
+        addItem('runenstein', -1); w.stats.atk = (w.stats.atk ?? 0) + 3; (w as { runed?: boolean }).runed = true; w.name += ' ᚱ'; SFX.magic(); toast(`${w.name}: +3 Angriff.`, 'big'); rr();
+      }, { disabled: !w })));
+    }],
+    ['Reden', (el) => {
+      el.appendChild(h('p', { style: 'font-style:italic' }, '„Die Runenwächter in der Mine waren einmal unsere Wächter. Dann ist der Stollen zum Dungeon geworden, und sie bewachen jetzt… ihn. Bring uns ihren Kernstein.“'));
+    }],
+  ]);
+}
+
+// ---------------- Katakomben von Lumenhall ----------------
+function katakomben(): void {
+  if (!G.flags.katakomben) {
+    G.flags.katakomben = true;
+    dialog([
+      { who: 'Katakomben', text: 'Stufen hinab, Gebeine in Nischen, Tausende. Und Singen. Ganz leise, aus der Tiefe.' },
+      { who: 'Alter Mönch', text: '„Du solltest nicht hier sein. Die Toten hier sind die ersten Kleriker. Sie singen, damit der Kirchenstaat nicht vergisst, was er war.“' },
+      { who: 'Alter Mönch', text: '„Nimm das. Ein Fläschchen Grabwasser. Es heilt Wunden, die das Licht nicht heilt.“' },
+    ], () => { addItem('heiltrank2', 2); toast('2 große Heiltränke erhalten.', 'big'); });
+    return;
+  }
+  dialog([{ who: 'Alter Mönch', text: '„Das Singen ist lauter geworden. Seit die Dungeons Erinnerungen fressen, singen die Toten gegen das Vergessen an.“' }]);
+}
+
+// ---------------- Kopfgeldbüro von Dornwall ----------------
+function kopfgeld(): void {
+  const elfish = ['elf', 'halbelf', 'dunkelelf', 'halbdunkelelf'].includes(G.party[0].app.race);
+  if (elfish) {
+    dialog([{ who: 'Kopfgeldmeister', text: 'Er greift nach der Armbrust unter dem Tresen. „Hier kaufen wir Ohren wie deine, nicht welche von dir. Raus, bevor ich es mir anders überlege.“' }]);
+    return;
+  }
+  const BOUNTY: [string, string, number][] = [['bandit', 'Wegelagerer', 18], ['sklavenjaeger', 'Sklavenjäger (Steckbrief der Freien)', 40], ['rankenweber', 'Rankenweber', 30], ['elfenjaeger', 'Abtrünnige Elfenjäger', 35]];
+  tabbed('Kopfgeldbüro', 'Steckbriefe an jeder Wand. Unter dem Tresen: ein Korb mit Ohren.', [
+    ['Steckbriefe', (el, rr) => {
+      const l = h('div', { class: 'list' });
+      for (const [id, name, per] of BOUNTY) {
+        const open = (G.kills[id] ?? 0) - ((G.flags['kg_' + id] as number) ?? 0);
+        l.appendChild(h('div', { class: 'item' }, h('span', { class: 'name' }, name, h('span', { class: 'tag' }, `${money(per)} je Kopf · offen: ${Math.max(0, open)}`)),
+          btn(open > 0 ? `Abholen (${money(open * per)})` : 'Nichts offen', () => { G.silver += open * per; G.flags['kg_' + id] = G.kills[id] ?? 0; G.rp += Math.floor(open / 3); SFX.coin(); toast(`+${money(open * per)}`, 'big'); rr(); }, { cls: 'small', disabled: open <= 0 })));
+      }
+      el.appendChild(l);
+    }],
+    ['Elfenkopfgeld', (el) => {
+      el.appendChild(h('p', {}, '„Zehn Gold für ein Paar Ohren. Fünfzig für eine lebende Elfe.“ Der Kopfgeldmeister schiebt dir einen Vertrag hin.'));
+      el.appendChild(h('div', {}, btn('Vertrag zerreißen', () => { G.flags.elfenvertrag = 'zerrissen'; toast('Du zerreißt den Vertrag. Hinter dir lacht jemand – und eine Elfe im Schatten nickt dir zu.', 'big', 4500); }, { cls: 'small' }),
+        btn('Wortlos gehen', () => { toast('Du gehst. Der Vertrag bleibt liegen.'); }, { cls: 'small' })));
+    }],
+  ]);
+}
+
+// ---------------- Dornfeste: Audienz bei der Verlorenen Königin ----------------
+function koenigin(): void {
+  const p = G.party[0];
+  if (!p.tattoo && p.app.race !== 'dunkelelf' && p.app.race !== 'halbdunkelelf') {
+    dialog([{ who: 'Torwache', text: 'Zwei Speere kreuzen sich vor deiner Brust. „Die Königin empfängt keine Ungezeichneten. Komm wieder, wenn die Dornen dich gewählt haben – oder nie.“' }]);
+    return;
+  }
+  if (!G.inv.dornsiegel) {
+    dialog([
+      { who: 'Die Verlorene Königin', text: 'Ein Thron aus schwarzem Eisen, und darauf eine Frau, die nicht älter aussieht als du. Ihre Augen sind uralt. „Du trägst meine Dornen. Weißt du, was das bedeutet?“' },
+      { who: 'Die Verlorene Königin', text: '„Es bedeutet, dass die Gärten dich wollten. Nicht ich. Ich nehme nur, was die Gärten mir schenken.“' },
+      { who: 'Die Verlorene Königin', text: '„Die Frist läuft bis 139. Bis dahin bin ich nicht dein Feind. Danach… wählst du eine Seite. Nimm das. Damit mein Heer dich erkennt.“' },
+    ], () => { addItem('dornsiegel'); G.flags.audienz = true; toast('Siegel der Dornen erhalten.', 'big', 4000); log('Audienz bei der Verlorenen Königin.'); });
+    return;
+  }
+  dialog([{ who: 'Die Verlorene Königin', text: '„Noch nicht. Komm wieder, wenn die Frist näher ist. Oder wenn du gewählt hast.“' }]);
 }
 
 export { fullHeal };
